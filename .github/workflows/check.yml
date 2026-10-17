@@ -1,0 +1,63 @@
+name: VietSpell checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pip install --no-deps --no-build-isolation -e .
+      - run: python -m pytest -q -p no:cacheprovider
+      - run: python tools/bootstrap_data.py
+      - run: python tools/make_sample.py
+      - run: python tools/smoke_gui.py data/sample.docx --report data/ci-gui-smoke.json
+
+  windows-trained-package:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/build/windows-exe')
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --require-hashes -r requirements-dev.lock
+      - run: python -m pip install --no-deps --no-build-isolation -e .
+      - name: Restore the verified trained model
+        run: python tools/ci_model.py restore
+      - name: Build and verify Windows executables
+        run: python tools/package_windows.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VietSpell-Windows-x64-trained
+          path: dist/VietSpell-Windows-x64-trained.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Keep verification reports for diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VietSpell-Windows-build-reports
+          path: build/windows-verification/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,953 @@
+================================================================================
+PROMPT TÁI TẠO ỨNG DỤNG VIETSPELL
+Ứng dụng soát lỗi chính tả và thể thức tiếng Việt cho tệp Word (.docx)
+Phiên bản tài liệu: 1.0 — kết xuất từ dự án đã hoàn thành và kiểm thử
+================================================================================
+
+[HƯỚNG DẪN CHO AI ĐỌC TÀI LIỆU NÀY]
+-----------------------------------
+Bạn được yêu cầu xây dựng lại — hoặc phát triển thêm — ứng dụng mô tả dưới đây.
+Toàn bộ đặc tả cần thiết nằm trong tài liệu này; bạn KHÔNG cần đoán.
+
+Thứ tự đọc bắt buộc:
+  1. PHẦN 1–3 để hiểu sản phẩm và kiến trúc.
+  2. PHẦN 4 để nắm thuật toán (đây là phần khó nhất, đặc tả rất chi tiết).
+  3. PHẦN 9 TRƯỚC KHI VIẾT MÃ. Phần này liệt kê 21 lỗi đã thực sự xảy ra và
+     cách sửa. Bỏ qua phần này gần như chắc chắn bạn sẽ lặp lại đúng những lỗi
+     đó — chúng tôi đã mất rất nhiều thời gian mới tìm ra.
+  4. PHẦN 8 là các con số đã đo, dùng làm mốc kiểm chứng.
+
+Nguyên tắc xuyên suốt: ỨNG DỤNG PHẢI CHẠY HOÀN TOÀN OFFLINE. Không gọi mạng,
+không gửi dữ liệu đi đâu. Tài liệu của người dùng không rời khỏi máy họ.
+
+
+================================================================================
+PHẦN 1 — MỤC TIÊU SẢN PHẨM
+================================================================================
+1.1. Bài toán
+    Người dùng Việt Nam soạn văn bản hành chính bằng Microsoft Word và cần soát:
+      (a) lỗi chính tả thông thường;
+      (b) lỗi NGỮ CẢNH — chữ viết đúng chính tả nhưng sai nghĩa;
+      (c) lỗi THỂ THỨC theo quy định pháp luật về trình bày văn bản.
+
+1.2. Ví dụ quyết định sản phẩm phải giải được
+    Câu: "Hôm nay bạn an gì. Tôi đang di chơi."
+    Ba lỗi, cả ba đều là chữ viết "đúng chính tả":
+      - "an" phải là "ăn"      (sai ngữ cảnh, không phải sai ký tự)
+      - "." phải là "?"         (câu nghi vấn dùng dấu chấm)
+      - "di" phải là "đi"       (thiếu dấu, chỉ khác ở chữ đ/đ)
+    Nếu sản phẩm không bắt được cả ba thì coi như chưa đạt.
+
+1.3. Ví dụ về thể thức
+    Dòng "Cộng hòa xã hội chủ nghĩa Việt Nam" viết sai (phải là "CỘNG HÒA XÃ
+    HỘI CHỦ NGHĨA VIỆT NAM", in hoa, đậm, cỡ 12–13) phải bị báo lỗi kèm căn cứ
+    pháp lý và phương án sửa.
+
+1.4. Yêu cầu về danh từ riêng (rất quan trọng, dễ làm sai)
+    - "cống Đôi": "Đôi" là tên riêng của cống → PHẢI ĐƯỢC MIỄN SOÁT, không được
+      sửa thành "Đội".
+    - "trong công tác, Nhất là công tác giải phóng mặt bằng": "Nhất" là phó từ,
+      không phải danh từ riêng → PHẢI BỊ BÁO LỖI viết hoa.
+    Đây là hai nửa của cùng một vấn đề. Làm được cái này mà hỏng cái kia là
+    không đạt.
+
+1.5. Yêu cầu về trải nghiệm
+    - Dải thông báo NGAY TRONG ỨNG DỤNG, không dùng hộp thoại (popup).
+    - Trong lúc soát phải báo tiến độ; xong phải báo kết quả bằng lời thân
+      thiện, nêu rõ có bao nhiêu lỗi, bao nhiêu lỗi nặng, và nên xử lý gì trước.
+    - Tệp Word nặng nên quá trình soát phải chạy ở luồng nền, không được đơ cửa sổ.
+
+
+================================================================================
+PHẦN 2 — YÊU CẦU KỸ THUẬT BẮT BUỘC
+================================================================================
+- Ngôn ngữ: Python 3.11 trở lên.
+- Giao diện: PySide6 (Qt 6). Không dùng webview, không dùng Electron.
+- Nền tảng đích: Windows 10/11 64-bit. Đóng gói bằng PyInstaller chế độ ONEDIR.
+- Đọc/ghi Word: python-docx, có thao tác trực tiếp trên XML OOXML khi cần.
+- Mô hình ngôn ngữ: SQLite nội bộ, không dùng thư viện học sâu.
+- Kích thước sản phẩm mục tiêu: dưới 250 MB (bản tham chiếu: 196 MB).
+- KHÔNG phụ thuộc mạng khi chạy. Mọi dữ liệu nằm trong thư mục `data/`.
+- Giấy phép: mã nguồn của bạn do bạn chọn; nhưng phải ghi công dữ liệu huấn
+  luyện (Wikipedia CC BY-SA 4.0, OPUS/OpenSubtitles).
+
+Vì sao KHÔNG dùng mô hình ngôn ngữ lớn (PhoBERT, transformers):
+    PhoBERT base khoảng 540 MB và cần PyTorch (thêm ~2 GB). Sản phẩm sẽ vượt
+    700 MB và mất tính "ứng dụng gọn nhẹ chạy ngay". Đã cân nhắc và loại bỏ.
+    Hướng thay thế: n-gram bậc 3 trên ngữ liệu hỗn hợp, huấn luyện kỹ.
+
+
+================================================================================
+PHẦN 3 — KIẾN TRÚC MÃ NGUỒN
+================================================================================
+src/vietspell/
+├── __main__.py                 điểm vào `python -m vietspell`
+├── cli.py                      giao diện dòng lệnh (check / fix / gui / doctor)
+├── service.py                  lớp ghép nối: DocumentSession, CheckStats
+│
+├── core/                       lõi ngôn ngữ, KHÔNG phụ thuộc giao diện
+│   ├── normalize.py            NFC, strip_tone, get_tone, fold_diacritics
+│   ├── syllable.py             luật cấu trúc âm tiết, sinh từ điển âm tiết
+│   ├── tokenizer.py            tách câu, tách âm tiết, bản đồ vị trí ký tự
+│   ├── ngram.py                mô hình n-gram nội suy trên SQLite
+│   ├── confusion.py            bảng nhầm lẫn phương ngữ / gõ máy / OCR
+│   ├── candidates.py           sinh ứng viên sửa lỗi (hai mức chi phí)
+│   ├── restore.py              khôi phục dấu mức cả câu bằng beam search
+│   ├── abbrev.py               từ viết tắt, teencode
+│   ├── proper_nouns.py         nhận diện danh từ riêng, lỗi viết hoa
+│   ├── format_rules.py         quy tắc thể thức mức ký tự
+│   ├── elements.py             đặc tả định dạng từng thành phần thể thức
+│   ├── legal.py                hồ sơ thể thức (ND30 / HD05) và căn cứ pháp lý
+│   ├── detector.py             bộ soát lỗi, ghép mọi tầng
+│   └── types.py                Issue, Suggestion, CheckResult
+│
+├── docx_io/                    đọc và ghi tệp Word
+│   ├── reader.py               văn bản phẳng + bản đồ tới từng run
+│   ├── writer.py               sửa giữ định dạng, chữ đỏ, theo dõi thay đổi
+│   ├── format_check.py         khổ giấy, lề, phông, cỡ chữ, giãn dòng
+│   └── element_check.py        nhận diện + kiểm tra từng thành phần thể thức
+│
+└── gui/
+    ├── theme.py                bảng màu sáng, stylesheet, apply_theme
+    └── app.py                  NoticeBar, MainWindow, SettingsDialog, CheckWorker
+
+tools/        công cụ phát triển (tải ngữ liệu, huấn luyện, đánh giá, tạo mẫu)
+tests/        bộ kiểm thử tự động (không cần mạng, chạy ở chế độ offscreen)
+data/         dữ liệu sinh ra khi huấn luyện (không nằm trong git)
+
+
+================================================================================
+PHẦN 4 — THUẬT TOÁN CỐT LÕI
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1. Chuẩn hoá và bỏ dấu (normalize.py)
+--------------------------------------------------------------------------------
+- Chuẩn hoá Unicode NFC cho mọi văn bản đầu vào. Bắt buộc: tiếng Việt có hai
+  cách mã hoá (tổ hợp và dựng sẵn), không chuẩn hoá thì so sánh sẽ sai.
+- get_tone(word) -> "ngang" | "sac" | "huyen" | "hoi" | "nga" | "nang"
+  Trả về "ngang" khi âm tiết KHÔNG có dấu thanh (chỉ có dấu mũ/dấu móc).
+- fold_diacritics(word): bỏ toàn bộ dấu thanh, dấu mũ, dấu móc, VÀ đổi đ -> d.
+  Hàm này là nền tảng của tầng khôi phục dấu.
+
+--------------------------------------------------------------------------------
+4.2. Sinh từ điển âm tiết bằng luật (syllable.py)
+--------------------------------------------------------------------------------
+ĐỪNG tải từ điển có sẵn (vấn đề giấy phép). Hãy SINH RA bằng luật cấu trúc:
+
+    Âm tiết tiếng Việt = ONSET + NUCLEUS + CODA (+ thanh điệu)
+
+  ONSETS  (phụ âm đầu): rỗng, b, c/k/q, ch, d, đ, g/gh, gi, h, kh, l, m, n,
+          ng/ngh, nh, ph, r, s, t, th, tr, v, x
+  NUCLEI  (vần): tổ hợp hợp lệ của nguyên âm đôi/ba + âm đệm
+  CODAS   (phụ âm cuối): rỗng, c, ch, m, n, ng, nh, p, t
+  THANH   : 6 thanh (ngang, sắc, huyền, hỏi, ngã, nặng)
+
+Luật ràng buộc phải cài đặt (nếu bỏ sẽ sinh ra âm tiết không tồn tại):
+  - "g" chỉ ghép được với nucleus KHÔNG bắt đầu bằng e/ê (phải dùng "gh").
+  - "ng" chỉ ghép được với nucleus không bắt đầu bằng e/ê/i (dùng "ngh").
+  - "c" đứng trước a/o/u; "k" đứng trước e/ê/i/y; "q" phải đi với "u".
+  - CODAS hạn chế theo nucleus: chỉ một số vần mới nhận coda.
+  - NGOẠI LỆ coda bắt buộc phải có trong bảng CODA_EXCEPTIONS:
+      uy/nh, uy/ch, uy/t, oo/ng
+  - Thanh điệu đặt đúng vị trí: với vần có âm đệm/mũ, dấu thanh đặt trên
+    nguyên âm chính theo luật chính tả (oa, oe, uy -> đặt trên a/e/y).
+
+Sinh ra khoảng 41.632 âm tiết có dấu. Sau đó GIAO với tập âm tiết thực sự xuất
+hiện trong ngữ liệu để có từ điển cuối (khoảng 8.700 mục). Cách này cho từ điển
+sạch, không lẫn âm tiết "đúng luật nhưng không ai dùng".
+
+--------------------------------------------------------------------------------
+4.3. Mô hình n-gram (ngram.py)
+--------------------------------------------------------------------------------
+Lưu trong SQLite, ba bảng: unigram(syllable, count), bigram(w1, w2, count),
+trigram(w1, w2, w3, count), và bảng meta(key, value) chứa total_syllables,
+lexicon_size, sources. Mở ở chế độ CHỈ ĐỌC (mode=ro, query_only=ON).
+
+Công thức xác suất — NỘI SUY JELINEK-MERCER VỚI TRỌNG SỐ CỐ ĐỊNH:
+
+    P1(w)      = (c1(w) + 0.5) / (N + 0.5·V)          # add-0.5, N=total, V=vocab
+    P2(w2|w1)  = 0.75·(c2/c1) + 0.25·P1(w2)           nếu c1 > 0
+               = P1(w2)                                nếu c1 = 0
+    P3(w3|w1,w2) = 0.65·(c3/c2) + 0.35·P2(w2,w3)      nếu c2 > 0
+                 = P2(w2,w3)                           nếu c2 = 0
+
+    Trong đó BIGRAM_WEIGHT = 0.75, TRIGRAM_WEIGHT = 0.65.
+
+!!! CẢNH BÁO QUAN TRỌNG — XEM THÊM LỖI #5 Ở PHẦN 9 !!!
+    TUYỆT ĐỐI KHÔNG dùng công thức "tin cậy theo số đếm" kiểu:
+        conf = c2/(c2 + K);  P3 = conf·(c3/c2) + (1-conf)·P2
+    với K nhỏ (ví dụ 8). Khi đó một cặp rất phổ biến (c2 lớn) sẽ cho conf ≈ 1,
+    và nếu trigram CHƯA TỪNG GẶP (c3 = 0) thì P3 ≈ 0 — tức là biến "chưa từng
+    thấy" thành BẰNG CHỨNG CHỐNG ứng viên. Đây là lỗi thật đã xảy ra và làm mất
+    những ca đúng.
+    Ngoài ra phải có bộ đệm (cache) cho c1/c2/c3 và p1/p2/p3 vì mỗi câu cần
+    hàng nghìn phép tra cứu.
+
+--------------------------------------------------------------------------------
+4.4. Sinh ứng viên sửa lỗi (candidates.py + confusion.py)
+--------------------------------------------------------------------------------
+Hai mức chi phí, vì tìm gần đúng rất đắt:
+  - MỨC RẺ (chạy ở MỌI vị trí): tra bảng nhầm lẫn + tách từ dính.
+  - MỨC ĐẮT (chỉ chạy ở vị trí bị "cổng" chặn): Damerau-Levenshtein khoảng cách
+    ≤ 2, duyệt từ điển theo độ dài.
+
+Bảng nhầm lẫn (confusion.py) gồm bốn nhóm:
+  - Phương ngữ Bắc/Nam: s↔x, ch↔tr, d↔gi↔r, l↔n, hỏi↔ngã, v↔d, ...
+  - Gõ sai bàn phím: các cặp ký tự cạnh nhau trên bàn phím QWERTY.
+  - OCR: o↔0, l↔1, rn↔m, ...
+  - Biến thể chính tả: y↔i, ...
+
+Mỗi ứng viên mang theo `reason` (lý do) và có tiên nghiệm riêng. Ứng viên từ
+bảng nhầm lẫn dùng ngưỡng thấp hơn ứng viên tìm gần đúng.
+
+--------------------------------------------------------------------------------
+4.5. Khôi phục dấu mức cả câu (restore.py) — TẦNG KHÓ NHẤT
+--------------------------------------------------------------------------------
+Mục đích: sửa câu mất dấu, kể cả khi NHIỀU âm tiết liền nhau cùng mất dấu.
+    "cai nay"  -> "cái này"      (2 âm tiết)
+    "toi di hoc o truong" -> "tôi đi học ở trường"
+    "an" -> "ăn", "di" -> "đi"
+
+Bốn cơ chế bắt buộc phải có, thiếu một cái là hỏng:
+
+(1) LUẬT ĐÓNG BĂNG THANH ĐIỆU — is_restorable(word)
+    CHỈ xét những âm tiết hoàn toàn KHÔNG có dấu thanh (get_tone == "ngang").
+    Lý do: phải phân biệt "THIẾU dấu" với "SAI dấu". Người gõ thiếu dấu viết
+    "cai", "te", "co" — không có thanh nào. Còn "bảo" -> "bão" hay "xứ" -> "xử"
+    là ĐỔI thanh điệu, loại lỗi khác hẳn, và n-gram không đủ căn cứ kết luận.
+    Đã đo: nếu bỏ luật này, tỉ lệ báo nhầm trên văn bản sạch là 40%; có luật
+    này còn khoảng 10% (và sau khi hiệu chỉnh tiếp thì thấp hơn nhiều).
+
+(2) SINH BIẾN THỂ CÙNG DẠNG CHỮ CÁI — variants(word)
+    Nhóm các âm tiết theo fold_diacritics (đã bao gồm đ->d). Ứng viên cho một
+    âm tiết CHỈ là các âm tiết cùng dạng bỏ dấu. Nhờ vậy mô hình chỉ được phép
+    "thêm dấu", gần như không thể sửa sang từ khác nghĩa.
+    Sắp xếp theo tần suất giảm dần, giữ tối đa MAX_VARIANTS = 12.
+
+    CHỐT CHẶN TẦN SUẤT (bắt buộc): chỉ cho phép thay thế nếu ứng viên đạt ít
+    nhất MIN_FREQUENCY_SHARE = 0.5 lần tần suất của âm tiết đang xét.
+    Nhờ vậy "tôi" KHÔNG bị đổi thành "tới" và "đang" KHÔNG bị đổi thành "đặng"
+    (hai từ rất phổ biến gần như không bao giờ là lỗi thiếu dấu), nhưng "an"
+    -> "ăn" vẫn được phép vì hai từ gần ngang tần suất.
+
+(3) TÌM KIẾM CHÙM (BEAM SEARCH) TRÊN CẢ CÂU
+    beam_width = 8. Mỗi bước giữ 8 chuỗi tốt nhất, khử trùng theo hai âm tiết
+    cuối. Điểm của một ứng viên:
+        score = UNKNOWN_SCORE nếu từ không có trong từ điển
+              = model.logprob(context[-2:], word) nếu có
+    UNKNOWN_SCORE = -6.0 và PHẢI LÀ HẰNG SỐ, KHÔNG phụ thuộc ngữ cảnh.
+    Lý do: nếu để mô hình chấm điểm những từ nó chưa từng thấy, giá trị suy
+    giảm theo ngữ cảnh sẽ đánh lệch kết quả cả câu (đã từng khiến "cai nay" bị
+    khôi phục nhầm thành "cãi nảy").
+
+(4) NGƯỠNG CHẤP NHẬN PHỤ THUỘC SỐ ÂM TIẾT BỊ ĐỔI — _diff()
+    Với mỗi đoạn liên tiếp bị đổi (n âm tiết), tính mức cải thiện log10 trên
+    cửa sổ ảnh hưởng rồi so với ngưỡng:
+        n = 1  -> min_delta                      (mặc định 1.0)
+        n = 2  -> min_delta_run (1.0) NẾU có ít nhất một âm tiết "hiếm"
+                  (unigram_count < RARE_UNIGRAM = 200); nếu không thì min_delta
+        n >= 3 -> min_delta × (n − 1)
+    !!! Đây là chỗ cực dễ làm sai. Ngưỡng phải TĂNG theo số âm tiết bị đổi.
+    Bản đầu tiên của chúng tôi dùng ngưỡng THẤP NHẤT (1.0) cho mọi đoạn nhiều
+    âm tiết, và hậu quả là câu "Tôi đang di chơi." bị sửa thành
+    "Tới đặng đi chơi." — ba từ thông dụng bị viết lại chỉ vì tổng điểm cộng dồn
+    vượt ngưỡng quá dễ dãi.
+
+    Ngoài ra phải có tập `frozen`: các vị trí KHÔNG được đổi, gồm chữ viết tắt,
+    từ ngoại lai, mã đơn vị (CAT, ANKT, Đ/c, V/v) và danh từ riêng.
+
+--------------------------------------------------------------------------------
+4.6. Tám tầng soát lỗi trong detector.py
+--------------------------------------------------------------------------------
+Mỗi tầng sinh ra các đối tượng Issue, sau đó gộp và khử trùng lặp.
+
+  Tầng 1 — Viết tắt / teencode (abbrev.py)
+      Từ điển: ko->không, k0->không, hok->không, dc/đc->được, dk/đk->được,
+      vs->với, wa->quá, qá->quá, trc->trước, ntn->như thế nào, mk->mình,
+      mik->mình, bn->bạn, ck->chồng, vk->vợ, ny->người yêu, iu->yêu,
+      ngta->người ta, j->gì, z->vậy, cf->cà phê, kq->kết quả, sp->sản phẩm.
+      KHÔNG báo các từ viết tắt in hoa trong văn bản hành chính (UBND, TW...).
+
+  Tầng 2 — Âm tiết lạ (unknown)
+      Từ không có trong từ điển và không thuộc nhóm miễn soát.
+
+  Tầng 3 — Nhầm lẫn phương ngữ / gõ máy (confusion)
+      Dùng bảng nhầm lẫn, ngưỡng min_delta_confusion.
+
+  Tầng 4 — Gần giống ký tự (fuzzy)
+      Damerau-Levenshtein ≤ 2, ngưỡng min_delta_fuzzy.
+
+  Tầng 5 — Ngữ cảnh (context)
+      Cụm âm tiết sai nghĩa dù từng âm tiết hợp lệ ("minh tế" -> "kinh tế").
+
+  Tầng 6 — Khôi phục dấu (diacritic) — mô tả ở 4.5.
+
+  Tầng 7 — Viết hoa (capitalization) — mô tả ở 4.8.
+
+  Tầng 8 — Thể thức mức ký tự (format_rules.py) — mô tả ở PHẦN 6.
+
+QUY TẮC MIỄN SOÁT (_skip) — bắt buộc, nếu thiếu sẽ báo nhầm rất nhiều:
+  - Từ có trong whitelist của người dùng.
+  - Từ chứa ký tự không thuộc bảng chữ cái tiếng Việt: f, j, w, z (F, J, W, Z).
+  - Từ viết hoa TOÀN BỘ mà không có trong từ điển (viết tắt, số La Mã).
+  - Từ có chữ hoa nằm GIỮA từ (VietSpell, iPhone, macOS) — dấu hiệu chắc chắn
+    của tên riêng nước ngoài hoặc thương hiệu; tiếng Việt không viết vậy.
+  - Chữ cái đơn viết hoa (Đ, P, V) — thường là viết tắt.
+  - Cặp ký tự dài ≤ 2 nằm cạnh dấu "/" (Đ/c, V/v, T/p).
+  - Từ viết hoa dài > 1 nằm cạnh "/" hoặc "-" (mã trong số ký hiệu: 123/CAT-ANKT).
+  - Danh từ riêng theo proper_nouns.is_proper_noun (xem 4.8).
+
+--------------------------------------------------------------------------------
+4.7. Bản đồ vị trí ký tự (tokenizer.py) — BẮT BUỘC CHÍNH XÁC
+--------------------------------------------------------------------------------
+Toàn bộ ứng dụng dựa trên việc ánh xạ vị trí ký tự trong văn bản phẳng trở lại
+đúng run trong tệp Word. Yêu cầu:
+  - VI_LETTERS phải bao gồm ĐẦY ĐỦ chữ cái tiếng Việt VIẾT HOA. Thiếu chữ hoa
+    thì "Ông" sẽ bị tách thành "ng" (lỗi thật đã xảy ra).
+  - KHÔNG dùng re.escape() cho lớp ký tự — nó phá vỡ khoảng a-z. Phải viết
+    tường minh: A-Z, a-z, rồi ghép các chữ cái tiếng Việt.
+  - needs_reindex() + index_map() để phát hiện và bù lệch vị trí.
+
+--------------------------------------------------------------------------------
+4.8. Danh từ riêng và lỗi viết hoa (proper_nouns.py)
+--------------------------------------------------------------------------------
+Căn cứ: Nghị định 30/2020/NĐ-CP, Phụ lục II.
+
+A. BỐN DẤU HIỆU NHẬN RA DANH TỪ RIÊNG (để MIỄN SOÁT):
+   1. Cụm nhiều âm tiết viết hoa liền nhau — "Nguyễn Văn Nam", "Hà Nội".
+   2. Danh từ chung chỉ địa hình đứng trước — theo Mục III.1.d: sông, núi, hồ,
+      biển, cửa, bến, cầu, vũng, lạch, vàm, VÀ các từ tương tự: cống, chợ, đèo,
+      vịnh, đảo, suối, thác, bãi, rừng, đồi, kênh, mương, rạch, đập, cảng, ga,
+      phố, đường, thôn, ấp, bản, làng, xóm, khu, chùa, đền, đình...
+      -> "cống Đôi", "cầu Đôi", "chợ Bến Thành", "sông Hồng".
+   3. Chức danh đứng trước — ông, bà, anh, chị, đồng chí, đ/c, bác, cụ, giáo,
+      tiến sĩ, đại tá, thượng tá, trung tá, thiếu tá...
+      -> "Đại tá Lê Văn Tuấn".
+   4. Danh sách địa danh đã biết — 34 tỉnh/thành và một số địa danh quen thuộc.
+
+!!! CẢNH BÁO: TRA CỨU PHẢI GIỮ NGUYÊN DẤU !!!
+    Nếu bỏ dấu khi tra cứu, "cống" và "công" đều thành "cong" và bạn sẽ tưởng
+    "công tác" là "danh từ chỉ địa hình + tên riêng" — khiến mọi từ viết hoa
+    đứng sau "công" được miễn soát. Đây là lỗi thật đã xảy ra. Dùng .lower()
+    nhưng GIỮ dấu.
+
+B. ĐIỀU KIỆN BÁO LỖI VIẾT HOA — phải thoả TẤT CẢ:
+   1. Từ đang viết hoa và KHÔNG phải danh từ riêng theo bốn dấu hiệu trên.
+   2. KHÔNG thuộc nhóm chỉ loại hình cơ quan, tổ chức (Mục IV.1.a QUY ĐỊNH viết
+      hoa các từ này): ban, công, sở, bộ, ủy, hội, đoàn, phòng, văn, trường,
+      viện, trung, chi, tổng, cục, đảng, nhà, chính, quốc, mặt, liên, học,
+      bệnh, xí, hợp, tập, ngân, kho, tòa, hạt, trạm, đội, tiểu, phân...
+      -> "Ban chỉ đạo", "Công an tỉnh", "Sở Nông nghiệp" là ĐÚNG.
+   3. Câu KHÔNG chứa quốc hiệu hoặc tiêu ngữ (hai thành phần này có mẫu chữ
+      riêng theo Phụ lục I): "Độc lập – Tự do – Hạnh phúc",
+      "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", "ĐẢNG CỘNG SẢN VIỆT NAM".
+   4. Từ KHÔNG đứng đầu một mục liệt kê sau gạch đầu dòng (-, –, +, •, *).
+      -> "- Như trên;" là quy ước, không phải lỗi.
+   5. Viết hoa GIỮA CÂU — ký tự có nội dung gần nhất phía trước KHÔNG phải
+      ".", "!", "?", "…" hoặc xuống dòng (Mục I chỉ cho phép viết hoa ở đó).
+   6. Từ là từ THÔNG DỤNG: unigram_count >= capitalization_min_count (5000).
+      Từ hiếm có thể là tên riêng chưa biết nên KHÔNG kết luận.
+   7. Đứng ngay sau DẤU PHẨY, hoặc đứng ngay trước một TỪ CHỨC NĂNG MẠNH.
+      Danh sách từ chức năng mạnh CỐ Ý NGẮN: là, thì, và, của, có, trong, để,
+      với, cho, khi, nếu, mà, nên, nhưng, hoặc.
+      KHÔNG đưa vào: chỉ, do, trên, đã, sẽ, đang, rất, cũng, đều, còn, về,
+      từ, đến, tới, dưới, trước, sau, theo, bằng, như...
+      Lý do: "chỉ" đứng sau "Ban chỉ đạo", "do" đứng sau "Tự do", "trên" đứng
+      sau "Như trên" — đưa vào sẽ báo nhầm hàng loạt (lỗi thật đã xảy ra).
+
+C. DẤU NGĂN CÁCH: CHỈ dùng dấu phẩy. KHÔNG dùng dấu chấm phẩy và dấu hai chấm
+   — chúng thường mở đầu một mục liệt kê mới, viết hoa ở đó là bình thường.
+
+D. Phương án sửa cho lỗi viết hoa: chuyển chữ cái đầu về chữ thường.
+   Kèm căn cứ "Nghị định 30/2020/NĐ-CP, Phụ lục II, Mục I và Mục III".
+
+
+================================================================================
+PHẦN 5 — DỮ LIỆU HUẤN LUYỆN
+================================================================================
+5.1. Nguồn (tools/download_corpus.py)
+    - viwiki:       https://dumps.wikimedia.org/viwiki/latest/viwiki-latest-pages-articles.xml.bz2
+                    (~1,1 GB) — giấy phép CC BY-SA 4.0
+    - opensubtitles: https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/vi.txt.gz
+                    (~61 MB) — OPUS/OpenSubtitles
+    - ccaligned:    https://object.pouta.csc.fi/OPUS-CCAligned/v1/mono/vi.txt.gz
+                    (~404 MB) — tùy chọn, rất nặng, cân nhắc dung lượng đĩa
+
+5.2. VÌ SAO PHẢI CÓ NGỮ LIỆU HỘI THOẠI — BÀI HỌC LỚN NHẤT
+    Chỉ dùng Wikipedia (văn phong bách khoa) thì TẦN SUẤT LỆCH HẲN khỏi tiếng
+    Việt thường ngày:
+        "tới" (36.586) > "tôi" (13.202)     <- trong đời thực ngược lại
+        "an"  (36.515) > "ăn"  (15.084)     <- vì "an" hay gặp trong "an ninh"
+    Hệ quả: câu "Tôi đang di chơi" không được sửa thành "Tôi đang đi chơi",
+    và "an" không được nhận ra là "ăn".
+    Thêm phụ đề phim vào là hết:
+        "đi" (383.697) so với "di" (40.575)
+        "có" (1.092.358) so với "co" (5.503)
+    KẾT LUẬN: ngữ liệu phải HỖN HỢP. Bách khoa cho thuật ngữ, hội thoại cho
+    tần suất từ thông dụng.
+
+5.3. Lệnh huấn luyện
+    python tools/download_corpus.py viwiki opensubtitles
+    python tools/build_ngram.py \
+        -i data/raw/viwiki-pages-articles.xml.bz2 \
+        -i data/raw/opus-opensubtitles-vi.txt.gz \
+        --out data/ \
+        --max-articles 80000 --prune-every 150000 \
+        --min-unigram 4 --min-bigram 4 --min-trigram 5
+
+    CẢNH BÁO DUNG LƯỢNG ĐĨA: quá trình huấn luyện sinh tệp tạm
+    data/_ngram-staging.sqlite cỡ vài GB. Phải chừa trống ÍT NHẤT 6 GB. Tùy chọn
+    --prune-every giữ tệp tạm nhỏ; đặt 0 thì nhanh hơn nhưng tốn đĩa hơn nhiều
+    (đã từng làm đầy đĩa ở mức 3,5 GB và thất bại giữa chừng).
+
+5.4. Mô hình tham chiếu đã dùng
+    sentences     7.789.035
+    syllables     79.935.542
+    lexicon       8.722
+    unigram       8.722
+    bigram        869.376
+    trigram       1.818.050
+    ngram.sqlite  55,8 MB
+
+
+================================================================================
+PHẦN 6 — BỘ QUY TẮC VÀ CĂN CỨ PHÁP LÝ
+================================================================================
+6.1. PHÂN BIỆT HAI NHÓM — ĐỪNG GÁN SAI CĂN CỨ
+    Đã đối chiếu TOÀN VĂN sáu phụ lục của Nghị định 30/2020/NĐ-CP. Kết luận:
+
+    NHÓM CÓ CĂN CỨ PHÁP QUY (ghi rõ số hiệu, phụ lục, mục):
+      - Viết hoa đầu câu            -> NĐ30, Phụ lục II, Mục I
+      - Viết hoa khi viện dẫn Điều/Khoản/Điểm -> NĐ30, Phụ lục II, Mục V.7
+      - Ngày < 10 và tháng 1,2 phải thêm số 0 -> NĐ30, Phụ lục I, Mục II.4
+      - Lùi đầu dòng bằng thụt lề   -> NĐ30, Phụ lục I, Mục II.6.e
+      - Quyền hạn người ký đúng hệ văn bản -> NĐ30 PL I II.7.b; HD05 Mục I.7.1
+      - Công văn của Đảng không dùng "V/v" -> HD05
+      - Khổ giấy, lề, phông, cỡ chữ, giãn dòng -> NĐ30, Phụ lục I, Mục I và II
+      - Định dạng từng thành phần thể thức -> NĐ30, Phụ lục I, Mục V
+
+    NHÓM CHUẨN MỰC BIÊN TẬP (KHÔNG có quy định pháp quy trực tiếp):
+      - Nhiều dấu cách liên tiếp, dấu cách trước/sau dấu câu
+      - Dấu cách trong ngoặc, dấu câu lặp lại
+      - Dấu cách cuối dòng, ký tự tab, dòng trống liên tiếp
+      - Ký tự vô hình, Shift+Enter
+      - Câu hỏi kết thúc bằng dấu chấm
+
+    !!! TUYỆT ĐỐI KHÔNG gán "Nghị định 30/2020/NĐ-CP" cho nhóm thứ hai.
+    Nghị định KHÔNG quy định về số dấu cách giữa các từ, dấu cách trước/sau dấu
+    câu, dấu cách trong ngoặc, dấu câu lặp lại, tab hay dòng trống. Gán sai căn
+    cứ sẽ khiến người dùng tin nhầm rằng đó là quy định bắt buộc. Nhóm nào không
+    có căn cứ thì ghi thẳng là "Chuẩn mực biên tập — không có quy định pháp quy
+    trực tiếp".
+
+6.2. Quy tắc thể thức mức ký tự (format_rules.py)
+    SPACE_MULTI, SPACE_INSIDE_BRACKET, SPACE_BEFORE_PUNCT,
+    MISSING_SPACE_AFTER_PUNCT, PUNCT_REPEAT, SPACE_BEFORE_UNIT, INVISIBLE_CHARS,
+    TAB_IN_TEXT, TRAILING_SPACE, LEADING_SPACE, BLANK_LINE,
+    LOWERCASE_SENTENCE_START, CITATION_LOWERCASE, QUESTION_MARK,
+    DATE_FORMAT, SIGNING_AUTHORITY, PARTY_NO_VV
+
+    QUY TẮC QUESTION_MARK: câu kết thúc bằng dấu chấm mà âm tiết cuối cùng
+    thuộc nhóm nghi vấn thì phải dùng dấu "?".
+      INTERROGATIVE_FINALS = {gì, sao, nào, đâu, không, chứ, à, ư, hả, ai, thế,
+                              nhỉ, hử, hở, chăng, chưa}
+    CHỈ xét âm tiết ĐỨNG CUỐI CÂU, và câu phải có từ 2 âm tiết trở lên.
+    Nhờ vậy "Tôi không biết gì cả." (tường thuật) KHÔNG bị báo nhầm, còn
+    "Hôm nay bạn ăn gì." thì bị báo.
+
+6.3. CHỖ ĐỂ TRỐNG CHỜ KÝ SỐ — KHÔNG PHẢI LỖI (bắt buộc phải có)
+    Văn bản thật thường chừa khoảng trống để hệ thống ký số tự điền:
+        "Số:         /CAT-ANKT"
+        "Ninh Bình, ngày         tháng 10 năm 2026"
+    Coi là CHỖ ĐỂ TRỐNG CÓ CHỦ ĐÍCH khi khoảng trắng dài 5–15 dấu cách VÀ đứng
+    ngay sau "ngày", "tháng", "năm", "Số" hoặc ngay trước "tháng", "năm", "/".
+    Những chỗ đó KHÔNG báo SPACE_MULTI, KHÔNG báo thiếu ngày, KHÔNG báo thiếu số.
+    Nhiều dấu cách ở chỗ khác (hoặc ngắn hơn 5) VẪN bị báo như thường.
+
+6.4. GẠCH NGANG DO WORD TỰ ĐỔI
+    Word tự động đổi "-" thành "–" (en dash). Vì vậy khi so nội dung cố định của
+    quốc hiệu và tiêu ngữ, phải coi mọi loại gạch ngang là tương đương:
+        U+2010, U+2011, U+2012, U+2013, U+2014, U+2015, U+2212  <->  "-"
+    Nếu không, "Độc lập – Tự do – Hạnh phúc" sẽ bị báo là viết sai.
+
+6.5. Hồ sơ thể thức (legal.py)
+    HC-ND30  — Văn bản nhà nước, Nghị định 30/2020/NĐ-CP
+        lề: trên/dưới 20–25 mm, trái 30–35 mm, phải 15–20 mm
+        cỡ chữ thân 13–14, khoảng cỡ cho phép 11–14
+        giãn dòng tối đa 1,5 dòng; khoảng cách sau đoạn tối thiểu 6 pt
+        quyền hạn ký: TM. / KT. / TL. / TUQ. / Q.
+        dùng "V/v"
+    DANG-HD05 — Văn bản của Đảng, Hướng dẫn 05-HD/VPTW
+        lề CỐ ĐỊNH 20/20/30/15 mm
+        cỡ chữ thân 14–15, khoảng cho phép 10–16
+        giãn dòng 18–22 pt chế độ Exactly
+        quyền hạn ký: T/M, K/T, T/L, Q.
+        KHÔNG dùng "V/v"
+
+6.6. Định dạng TỪNG THÀNH PHẦN THỂ THỨC (elements.py)
+    Bảng cỡ chữ / in hoa / đậm / nghiêng cho mỗi thành phần.
+    ND30 (trích):
+        Quốc hiệu          12–13  in hoa, đậm, đứng
+        Tiêu ngữ           13–14  đậm, đứng
+        Tên cơ quan        12–13  in hoa (cấp trên đứng, ban hành đậm)
+        Số, ký hiệu        13     đứng
+        Địa danh và ngày   13–14  nghiêng
+        Tên loại văn bản   13–14  in hoa, đậm
+        Trích yếu          13–14  đậm
+        Nội dung           13–14  đứng
+        Quyền hạn người ký 13–14  in hoa, đậm
+        Chức vụ người ký   13–14  in hoa, đậm
+        Họ tên người ký    13–14  đậm
+        Từ "Nơi nhận"      12     nghiêng, đậm
+        Danh sách nơi nhận 11     đứng
+    HD05 khác: Tiêu đề Đảng cố định 15, tên cơ quan 14, tên loại 15–16,
+    nội dung 14–15, "Nơi nhận" 14 gạch chân, KHÔNG có Tiêu ngữ.
+
+    RÀNG BUỘC CHUỖI CỠ CHỮ (chỉ ND30) — chú thích 1 của Mục V:
+        cỡ(Quốc hiệu) + 1  ==  cỡ(Tiêu ngữ)  ==  cỡ(Địa danh và ngày tháng)
+    Phải kiểm tra ràng buộc này; đây là quy tắc có căn cứ rõ ràng và rất dễ kiểm.
+
+    THÀNH PHẦN BẮT BUỘC:
+        quốc hiệu, tiêu ngữ, tên cơ quan, số ký hiệu, địa danh và ngày tháng,
+        nội dung, nơi nhận. (quyền hạn người ký KHÔNG bắt buộc — chỉ có khi ký
+        thay; tên loại và trích yếu KHÔNG bắt buộc với công văn)
+
+6.7. Nhận diện thành phần thể thức (element_check.py)
+    CẤU TRÚC THẬT CỦA VĂN BẢN HÀNH CHÍNH: phần đầu là MỘT BẢNG 1 HÀNG × 2 CỘT,
+    BORDER = 0.
+        Cột trái: cơ quan chủ quản -> cơ quan ban hành -> đường kẻ -> số văn bản
+                  (-> trích yếu nếu là công văn)
+        Cột phải: quốc hiệu -> tiêu ngữ -> đường kẻ -> địa danh và ngày tháng
+    Nếu là công văn thì trích yếu nằm ngay dưới số trong cùng ô. Nếu là văn bản
+    có tên loại thì tên loại và trích yếu nằm DƯỚI bảng.
+
+    PHÂN BIỆT CÔNG VĂN HAY KHÔNG qua chính số ký hiệu:
+        "Số: 123/CAT-ANKT"     -> công văn (phần sau "/" KHÔNG có gạch nối)
+        "Số: 123/BC-CAT-ANKT"  -> có tên loại (phần sau "/" CÓ gạch nối)
+
+    !!! XEM LỖI #4 Ở PHẦN 9: THỨ TỰ ĐỌC TÀI LIỆU !!!
+    Phải duyệt các phần tử con của w:body THEO ĐÚNG THỨ TỰ (đoạn văn và bảng xen
+    kẽ nhau), KHÔNG được duyệt document.paragraphs rồi mới tới document.tables.
+
+    Số ký hiệu có thể ĐỂ TRỐNG chờ ký số: phải chấp nhận "Số:         /CAT-ANKT"
+    (mẫu số cho phép rỗng).
+
+    ĐỘ TIN CẬY nhận diện phải được ghi rõ trong thông báo:
+        cao     — quốc hiệu, tiêu ngữ, số ký hiệu, địa danh và ngày tháng,
+                  nơi nhận, quyền hạn người ký (nhận diện bằng mẫu văn bản)
+        trung bình — tên cơ quan, tên loại, trích yếu (phải suy đoán theo vị trí)
+    Thông báo độ tin cậy trung bình PHẢI ghi thêm
+    "(nhận diện tự động theo vị trí, độ tin cậy trung bình)" và hạ mức độ xuống,
+    để người dùng biết chỗ nào cần tự kiểm chứng.
+
+6.8. Kiểm tra định dạng tệp Word (format_check.py)
+    Khổ giấy, hướng giấy, lề trang; phông chữ (phải phân giải cả phông đặt qua
+    THEME); cỡ chữ, màu chữ; giãn dòng, khoảng cách sau đoạn; thụt lề đầu dòng;
+    canh lề; Shift+Enter (BỎ QUA thẻ w:lastRenderedPageBreak do Word tự chèn).
+
+    Kế thừa định dạng phải đi theo chuỗi: run -> style đoạn -> base_style ->
+    style Normal. Bỏ qua bước này sẽ sinh báo nhầm "không đậm" cho chữ vốn đậm
+    theo style.
+
+    DÙNG TAB ĐỂ LÙI ĐẦU DÒNG LÀ HỢP LỆ. Tab trong OOXML là phần tử <w:tab/>
+    RỖNG, KHÔNG phải w:t — phải đọc trực tiếp từ XML mới thấy. Đoạn căn giữa
+    (tiêu đề, trích yếu) không bị đòi thụt lề đầu dòng.
+
+    Đoạn nội dung dài CUỐI CÙNG (ngay trước chữ ký) không bị đòi khoảng cách
+    sau đoạn — tránh nhiễu.
+
+6.9. Ghi tệp Word (writer.py)
+    Bốn chế độ:
+        RED       — chữ đỏ ở chỗ đã sửa, giữ nguyên phần còn lại
+        TRACK     — sinh thẻ w:ins/w:del chuẩn OOXML (theo dõi thay đổi của Word)
+        PLAIN     — sửa thẳng tại chỗ, giữ định dạng
+        HIGHLIGHT — không sửa gì, chỉ tô sáng chỗ nghi vấn
+    Một câu trong Word thường bị chia thành nhiều run vì lý do định dạng, nên
+    phải tách run theo đúng ranh giới ký tự cần thay.
+    Khi thay chữ, phải đặt xml:space="preserve" cho w:t nếu có khoảng trắng đầu/cuối.
+
+
+================================================================================
+PHẦN 7 — GIAO DIỆN
+================================================================================
+7.1. Bố cục
+    - Thanh công cụ: Mở tệp | Soát lỗi (F5) | Chấp nhận tất cả | Bỏ qua tất cả |
+      Loại văn bản | Xuất dưới dạng | Xuất tệp | Xuất báo cáo | Độ nhạy
+    - DẢI THÔNG BÁO ngay dưới thanh công cụ, luôn hiển thị.
+    - Chia đôi: trái là văn bản (chỉ đọc, có tô sáng), phải là bảng lỗi.
+    - Thanh trạng thái ở đáy: số đoạn, số từ, số lỗi theo loại và mức độ.
+
+7.2. Dải thông báo — SÁU TRẠNG THÁI, KHÔNG DÙNG HỘP THOẠI
+    Nền đổi màu: xanh dương (đang chạy), xanh lá (sạch), vàng (lỗi nhẹ),
+    đỏ (có lỗi nặng).
+
+    (1) Vừa mở tệp:
+        "💡 Đã mở <tên tệp> — 23 đoạn, 308 từ.
+         Bấm Soát lỗi (F5) để kiểm tra chính tả và thể thức."
+    (2) Đang soát:
+        "⏳ Đang soát lỗi… 45%  Đã xử lý 120/265 đoạn.
+         Văn bản dài có thể mất vài phút, bạn chờ một chút nhé."
+    (3) Không có lỗi:
+        "🎉 Văn bản tốt quá — không phát hiện lỗi nào!
+         Đã soát 156 từ trong 20 đoạn."
+    (4) Chỉ lỗi nhẹ:
+        "✅ Chỉ có 3 lỗi nhẹ — văn bản khá tốt.
+         Toàn bộ đều là lỗi nhỏ, không ảnh hưởng đến nội dung. Bạn có thể bỏ qua."
+    (5) Có lỗi nặng:
+        "⚠️ Phát hiện 19 lỗi, trong đó 6 lỗi cần tập trung xử lý ngay.
+         Ngoài ra còn 8 lỗi mức vừa, 5 lỗi nhẹ.
+         Bạn đừng lo — phần lớn chỉ cần bấm một lần là xong.
+         Nên xem 6 lỗi mức cao trước.
+         Nhiều nhất: Lỗi thể thức (10), Sai ngữ cảnh (3), Thiếu dấu (3).
+         Đã soát 308 từ trong 23 đoạn."
+        Kèm nút "Chỉ xem 6 lỗi nặng" -> lọc bảng xuống mức cao.
+    (6) Không mở/không soát được tệp: hiện trên dải, KHÔNG bật QMessageBox.
+
+    YÊU CẦU VỀ GIỌNG VĂN: thân thiện, trấn an, chỉ rõ việc cần làm trước. Không
+    chỉ liệt kê con số khô khan.
+
+7.3. Yêu cầu kỹ thuật giao diện
+    - Soát lỗi chạy trong QThread (luồng nền) + signal tiến độ -> cửa sổ không đơ.
+    - PHẢI áp cả BẢNG MÀU chứ không chỉ stylesheet. Nếu chỉ đặt màu chữ mà không
+      đặt bảng màu, ở chế độ tối của Windows chữ sẽ hoà vào nền và KHÔNG NHÌN
+      THẤY GÌ (lỗi thật đã xảy ra). Dùng QPalette tường minh + Fusion style +
+      setColorScheme(Light).
+    - Bảng lỗi: cột Sửa? (tích), Từ nghi vấn, Phương án thay thế (combo sửa được),
+      Mức độ, Loại lỗi. Lọc theo mức độ. Bấm dòng -> nhảy tới vị trí trong văn bản.
+    - Với lỗi định dạng KHÔNG sửa được bằng thay chữ (đậm, nghiêng, cỡ chữ, thiếu
+      thành phần), ô "Phương án thay thế" phải hiện "— sửa trực tiếp trong Word —"
+      và bị VÔ HIỆU HOÁ. Nếu để nguyên từ gốc, người dùng sẽ tưởng đó là phương án.
+    - Lỗi viết hoa thì SỬA ĐƯỢC tự động (đổi chữ), phải đưa ra phương án.
+
+
+================================================================================
+PHẦN 8 — NGƯỠNG ĐÃ HIỆU CHỈNH VÀ KẾT QUẢ ĐO
+================================================================================
+8.1. Ngưỡng mặc định (CheckerConfig) — ĐÃ HIỆU CHỈNH THỰC NGHIỆM, ĐỪNG ĐOÁN LẠI
+    context_threshold         = -3.0
+    min_delta_confusion       =  2.5
+    min_delta_fuzzy           =  4.0
+    min_delta_diacritic       =  1.0
+    min_delta_diacritic_run   =  1.0
+    capitalization_min_count  =  5000
+    diacritic_beam            =  8
+
+    Ghi chú về context_threshold: ngưỡng -4,0 quá chặt với mô hình mới, khiến
+    "minh" trong "an ninh minh tế" (xác suất -3,39) không được đem đi tìm gần
+    đúng, làm BỎ SÓT lỗi. Hạ xuống -3,0 thì bắt được, đổi lại thời gian soát
+    tăng từ 0,07 s lên 0,17 s cho một đoạn hai câu — hoàn toàn chấp nhận được.
+
+8.2. Kết quả đo (tools/evaluate.py, 300 câu Wikipedia KHÔNG dùng để huấn luyện,
+     5.702 âm tiết, cộng 300 lỗi nhân tạo cho mỗi loại)
+
+    | Mức        | Ngưỡng (nhầm lẫn/gần đúng/dấu) | Báo nhầm      | Phương ngữ | Gõ 1 ký tự | Mất dấu |
+    |------------|-------------------------------|---------------|------------|------------|---------|
+    | Chặt       | 6,0 / 9,0 / 2,5               | 0,7% số câu   | 58%        | 18%        | 69%     |
+    | Cân bằng   | 2,5 / 4,0 / 1,0               | 9,3% số câu   | 87%        | 77%        | 88%     |
+    |   (mặc định)                                | (0,53% âm tiết)|           |            |         |
+    | Nhạy       | 2,0 / 3,5 / 0,8               | 14,7% số câu  | 92%        | 78%        | 90%     |
+
+    Chất lượng gợi ý ở mức mặc định (đúng ở vị trí 1 / trong 5 gợi ý đầu):
+        Nhầm lẫn phương ngữ  57% / 65%
+        Gõ sai 1 ký tự       54% / 56%
+        Mất dấu              77% / 77%
+
+    ĐỌC CON SỐ CHO ĐÚNG: "9,3% số câu" là tỉ lệ câu có ÍT NHẤT MỘT chỗ bị đánh
+    dấu, đo trên Wikipedia nguyên bản (nhiều tên riêng nước ngoài, từ cổ, cách
+    viết phiên âm). Tính theo âm tiết chỉ 0,53%. Các chỗ báo nhầm gần như đều ở
+    mức "thấp", lọc được bằng ô "Mức độ". Trên văn bản hành chính thực tế, tỉ lệ
+    này bằng 0.
+
+8.3. Ba mức dựng sẵn cho người dùng (SENSITIVITY_PRESETS)
+    "Chặt — ít báo nhầm"         6,0 / 9,0 / 2,5
+    "Cân bằng — khuyên dùng"     2,5 / 4,0 / 1,0
+    "Nhạy — bắt nhiều lỗi"       2,0 / 3,5 / 0,8
+    Hộp thoại độ nhạy cho chỉnh cả "Ngưỡng khôi phục dấu".
+
+
+================================================================================
+PHẦN 9 — 21 LỖI ĐÃ TRẢ GIÁ
+================================================================================
+!!! ĐỌC KỸ PHẦN NÀY TRƯỚC KHI VIẾT MÃ !!!
+Mỗi mục: HIỆN TƯỢNG -> NGUYÊN NHÂN -> CÁCH SỬA.
+
+--- NHÓM A: ĐỌC TỆP WORD ---
+
+#1. "Ông" bị tách thành "ng"
+    Hiện tượng: mọi từ bắt đầu bằng chữ hoa tiếng Việt bị cắt sai.
+    Nguyên nhân: lớp ký tự VI_LETTERS chỉ có chữ thường tiếng Việt, thiếu .upper().
+    Sửa: VI_LETTERS = ASCII + VI_LOWER + VI_LOWER.upper()
+
+#2. Mất khoảng a-z trong lớp ký tự
+    Hiện tượng: tách từ hỏng hoàn toàn sau khi "sửa" lỗi #1.
+    Nguyên nhân: dùng re.escape(VI_LETTERS) — escape biến "a-z" thành "a\-z",
+    phá vỡ khoảng ký tự.
+    Sửa: KHÔNG dùng re.escape. Viết tường minh A-Z, a-z rồi ghép chữ cái tiếng Việt.
+
+#3. Chữ hoà vào nền, không nhìn thấy gì
+    Hiện tượng: giao diện ở chế độ tối của Windows hiển thị chữ trắng trên nền
+    trắng (tương phản 1,06:1).
+    Nguyên nhân: chỉ áp stylesheet, không áp QPalette. Qt lấy bảng màu tối của hệ
+    thống cho các widget không được stylesheet phủ hết.
+    Sửa: đặt QPalette tường minh + style Fusion + setColorScheme(Light). Kiểm tra
+    tương phản WCAG (đạt 14,46:1 và 15,52:1).
+
+#4. BẢNG THỂ THỨC BỊ ĐỌC SAU PHẦN THÂN VĂN BẢN  <<< LỖI NGHIÊM TRỌNG NHẤT
+    Hiện tượng: mọi thành phần thể thức bị nhận diện sai. "Kính gửi..." bị coi là
+    tên cơ quan; "XỘNG HÒA..." bị coi là tên loại văn bản; báo thiếu quốc hiệu,
+    thiếu nơi nhận... dù văn bản có đủ.
+    Nguyên nhân: duyệt document.paragraphs TRƯỚC rồi mới tới document.tables.
+    Cách này ĐẨY TOÀN BỘ đoạn trong bảng xuống CUỐI, mà bảng thể thức lại nằm ở
+    ĐẦU tài liệu. Mọi suy đoán theo vị trí đều lệch.
+    Sửa: duyệt trực tiếp các phần tử con của w:body theo đúng thứ tự:
+        for child in body.iterchildren():
+            if child.tag == qn("w:p"):   yield Paragraph(...)
+            elif child.tag == qn("w:tbl"): yield Table(...)
+    Phải có TEST HỒI QUY riêng cho việc này.
+
+#5. "Co" không sửa được thành "Có"
+    Hiện tượng: câu "Co biết sửa cai nay ko?" chỉ bắt được "cai nay" và "ko",
+    bỏ sót "Co" -> "Có".
+    Nguyên nhân: công thức nội suy theo số đếm:
+        conf = c2/(c2+K);  P3 = conf·(c3/c2) + (1-conf)·P2
+    Với cặp "có biết" (c2 = 8.165) thì conf ≈ 1. Nhưng trigram "có biết sửa"
+    CHƯA TỪNG GẶP (c3 = 0) nên P3 ≈ 0. Tức là "chưa từng thấy" bị biến thành
+    BẰNG CHỨNG CHỐNG ứng viên, trong khi "co biết sửa" (c2 = 8) lại được lùi về
+    P2 nên điểm cao hơn.
+    Sửa: chuyển sang nội suy Jelinek-Mercer trọng số cố định:
+        P2 = 0.75·(c2/c1) + 0.25·P1
+        P3 = 0.65·(c3/c2) + 0.35·P2
+    Khi cặp chưa gặp, lùi hẳn về cấp thấp hơn (KHÔNG trả về gần 0).
+
+#6. "Tôi đang di chơi" bị sửa thành "Tới đặng đi chơi"
+    Hiện tượng: beam viết lại ba từ thông dụng thành vô nghĩa.
+    Nguyên nhân: ngưỡng chấp nhận cho đoạn nhiều âm tiết bị đặt NGƯỢC — càng
+    nhiều âm tiết bị đổi thì ngưỡng càng THẤP (1,0), nên chỉ cần tổng điểm cộng
+    dồn vượt 1,0 là chấp nhận cả ba chỗ.
+    Sửa: ngưỡng phải TĂNG theo số âm tiết: n>=3 -> min_delta × (n−1).
+    Đồng thời thêm chốt chặn tần suất ở variants() để từ rất phổ biến không bị
+    đổi (MIN_FREQUENCY_SHARE = 0.5).
+
+#7. "cai nay" không còn được phát hiện
+    Hiện tượng: sau khi siết ngưỡng ở lỗi #6, mất luôn ca "cai nay" -> "cái này".
+    Nguyên nhân: điều kiện "âm tiết lạ" kiểm tra bằng `word not in lexicon`,
+    nhưng "cai" CÓ trong từ điển (xuất hiện trong ngữ liệu) nên bị coi là từ
+    bình thường, ngưỡng bị đẩy lên mức cao.
+    Sửa: dùng TẦN SUẤT thật thay vì chỉ tra từ điển:
+        _is_rare(w) = (w not in lexicon) or (unigram_count(w) < 200)
+
+#8. Tần suất lệch vì ngữ liệu chỉ có Wikipedia  <<< LỖI LỚN VỀ DỮ LIỆU
+    Hiện tượng: "di" không sửa được thành "đi"; "an" không nhận ra là "ăn".
+    Nguyên nhân: văn phong bách khoa làm tần suất sai hẳn:
+        "tới" (36.586) > "tôi" (13.202);  "an" (36.515) > "ăn" (15.084)
+    ("an" hay gặp trong "an ninh", "an toàn").
+    Sửa: THÊM NGỮ LIỆU HỘI THOẠI (OPUS OpenSubtitles). Sau khi thêm:
+        "đi" (383.697) so với "di" (40.575);  "có" (1.092.358) so với "co" (5.503)
+
+#9. Bỏ dấu làm "cống" và "công" trùng nhau
+    Hiện tượng: mọi từ viết hoa đứng sau "công tác" được miễn soát.
+    Nguyên nhân: tra cứu danh từ chỉ địa hình bằng dạng ĐÃ BỎ DẤU; "cống" và
+    "công" đều thành "cong".
+    Sửa: khoá tra cứu dùng .lower() nhưng GIỮ NGUYÊN DẤU.
+
+#10. "cống Đôi" bị sửa nhầm thành "cống Đội"
+    Hiện tượng: tên riêng của công trình bị coi là lỗi thiếu dấu.
+    Nguyên nhân: chưa có cơ chế nhận diện danh từ riêng theo thế đứng.
+    Sửa: proper_nouns.is_proper_noun() với bốn dấu hiệu (xem 4.8A), trong đó
+    dấu hiệu "danh từ chung chỉ địa hình đứng trước" là quyết định cho ca này
+    (căn cứ NĐ30 Phụ lục II Mục III.1.d).
+
+--- NHÓM B: THỂ THỨC VÀ QUY TẮC ---
+
+#11. Hàm sửa thể thức XOÁ MẤT DẤU CHẤM CUỐI CÂU
+    Hiện tượng: fix("Xin  chào các bạn   .") trả về "Xin chào các bạn" — mất dấu chấm.
+    Nguyên nhân: hai quy tắc cùng khớp MỘT khoảng ký tự (SPACE_MULTI và
+    SPACE_BEFORE_PUNCT cùng span [17:20]). Áp cả hai theo thứ tự giảm dần thì
+    khoảng đó bị xoá hai lần.
+    Sửa: hàm resolve_overlaps() — sắp theo ĐỘ ƯU TIÊN của quy tắc rồi tham lam
+    chọn các phát hiện KHÔNG chồng lấn. Quy tắc cụ thể hơn thắng quy tắc chung.
+
+#12. Dòng ngày tháng ngay dưới số ký hiệu bị bỏ sót
+    Hiện tượng: báo "thiếu thành phần: Địa danh và ngày tháng" dù văn bản có.
+    Nguyên nhân: vòng lặp dừng ngay khi tìm thấy số ký hiệu, nên không quét tiếp
+    các đoạn sau để tìm dòng ngày tháng.
+    Sửa: tìm số ký hiệu trước, RỒI quét tiếp tối đa 5 đoạn sau để tìm ngày tháng
+    (dừng nếu gặp tên loại văn bản). Cũng phải xử lý trường hợp số và ngày nằm
+    CÙNG MỘT DÒNG (bảng hai cột hoặc tab) — khi đó địa danh bắt đầu sau số.
+
+#13. Bốn dòng "nơi nhận" cùng lỗi bị báo thành bốn mục
+    Hiện tượng: danh sách bị làm nhiễu.
+    Sửa: _merge_repeats() gộp các phát hiện giống hệt nhau (cùng rule_id và cùng
+    message), mở rộng span và ghi thêm "(lặp lại ở N chỗ)".
+
+#14. "BỘ CÔNG AN" bị báo "không in đậm"  <<< CHẨN ĐOÁN SAI, KHÔNG PHẢI LỖI ĐẬM
+    Hiện tượng: cơ quan cấp trên bị báo lỗi đậm.
+    Nguyên nhân THẬT: "BỘ CÔNG AN" bị nhận diện nhầm thành "Chức vụ người ký"
+    (vì vòng lặp tìm chức vụ quét từ ĐẦU tài liệu), rồi đem so với quy định
+    "chức vụ phải đậm".
+    Sửa hai việc:
+      (a) chỉ tìm chức vụ người ký ở PHẦN CUỐI văn bản (sau đoạn nội dung dài
+          cuối cùng), bỏ qua dòng gạch đầu dòng và dòng có chữ số (mã PV01, PA04);
+      (b) phân biệt cơ quan cấp trên với cơ quan ban hành: CHỈ dòng cuối (ban
+          hành) phải đậm, các dòng trên để đứng.
+    BÀI HỌC: khi một quy tắc báo lỗi kỳ lạ, hãy kiểm tra xem thành phần có bị
+    NHẬN DIỆN SAI không, trước khi sửa quy tắc.
+
+#15. Tiêu ngữ bị báo viết sai
+    Hiện tượng: "Độc lập – Tự do – Hạnh phúc" (đúng) bị báo lỗi.
+    Nguyên nhân: Word tự đổi "-" thành "–" (en dash U+2013), nhưng chuỗi chuẩn
+    dùng "-" (hyphen U+002D).
+    Sửa: normalize_dashes() — coi mọi loại gạch ngang là tương đương khi so nội
+    dung cố định (xem 6.4).
+
+#16. Dấu cách chờ ký số bị báo lỗi
+    Hiện tượng: "Ninh Bình, ngày         tháng 10 năm 2026" bị báo 2 lỗi.
+    Nguyên nhân: chưa biết đây là chỗ để trống có chủ đích.
+    Sửa: is_placeholder_gap() — 5–15 dấu cách đứng sau ngày/tháng/năm/Số hoặc
+    trước tháng/năm/"//" thì không phải lỗi (xem 6.3).
+
+#17. "Số:         /CAT-ANKT" không nhận diện được
+    Hiện tượng: báo thiếu Số văn bản, kéo theo báo thiếu Tên cơ quan và Nội dung.
+    Nguyên nhân: mẫu số ký hiệu bắt buộc phải có chữ số (d+), nhưng số để trống
+    chờ ký số.
+    Sửa: cho phép phần số RỖNG trong mẫu: ([0-9]*) thay vì (d+). Khi số rỗng mà
+    khoảng trống là chỗ chờ ký số thì KHÔNG báo lỗi gì cả.
+
+#18. Tab lùi đầu dòng bị bỏ qua
+    Hiện tượng: hai đoạn thân văn bản dùng Tab để lùi đầu dòng vẫn bị báo
+    "chưa lùi đầu dòng".
+    Nguyên nhân: Tab trong OOXML là <w:tab/> RỖNG, không phải w:t, nên bộ đọc
+    (chỉ gom w:t) KHÔNG THẤY NÓ.
+    Sửa: hàm paragraph_leading_tab() đọc trực tiếp XML; chấp nhận Tab đầu dòng
+    như thụt lề 1 cm.
+
+#19. Quy tắc viết hoa báo nhầm hàng loạt
+    Hiện tượng: bản đầu báo nhầm 6 chỗ trên chính văn bản thật của người dùng:
+    "Ban chỉ đạo", "Công an tỉnh", "Độc lập – Tự do", "- Như trên".
+    Nguyên nhân: (a) đưa "chỉ", "do", "trên" vào danh sách từ chức năng — đó
+    chính là những từ đứng sau các cụm đó; (b) không loại trừ từ chỉ loại hình
+    cơ quan; (c) dùng cả dấu chấm phẩy và hai chấm làm dấu ngăn cách; (d) không
+    miễn trừ quốc hiệu/tiêu ngữ và đầu mục liệt kê.
+    Sửa: thu hẹp theo đúng bảy điều kiện ở 4.8B. Sau khi sửa: 18/18 ca thử đúng,
+    văn bản thật của người dùng trở về đúng 1 phát hiện.
+
+#20. Nhãn cảnh báo gán SAI căn cứ pháp lý
+    Hiện tượng: cả 11 quy tắc thể thức đều ghi "Nghị định 30/2020/NĐ-CP", kể cả
+    quy tắc về dấu cách và dấu câu.
+    Nguyên nhân: gán căn cứ theo cảm tính mà không đối chiếu văn bản gốc.
+    Sửa: đối chiếu TOÀN VĂN sáu phụ lục của NĐ30 rồi tách thành hai nhóm (xem
+    6.1). Nhóm chuẩn mực biên tập PHẢI ghi rõ là không có căn cứ pháp quy.
+
+--- NHÓM C: ĐÓNG GÓI VÀ MÔI TRƯỜNG ---
+
+#21. Lỗi khi đóng gói và chạy bản .exe
+    (a) PyInstaller: SPECPATH phân giải sai thư mục -> dùng
+        ROOT = Path(SPECPATH).resolve().parent
+    (b) Bản CLI đóng gói báo UnicodeEncodeError 'charmap' khi in ra console
+        Windows -> gọi configure_stdio() (đặt UTF-8 cho stdout/stderr) và bọc
+        mọi lệnh in trong hàm _safe_print().
+    (c) sandbox/môi trường: pip cài đặt lỗi PermissionError trên thư mục tạm ->
+        vá tempfile.mkdtemp; đặt TEMP/TMP vào thư mục dự án.
+    (d) pytest không xoá được thư mục tạm -> dùng fixture `workdir` riêng và
+        chạy với -p no:cacheprovider.
+    (e) chạy kiểm thử giao diện không cần màn hình -> đặt QT_QPA_PLATFORM=offscreen.
+
+
+================================================================================
+PHẦN 10 — KIỂM THỬ
+================================================================================
+Bộ kiểm thử tham chiếu gồm 291 bài, chia thành:
+    tests/test_core.py     (123) — chuẩn hoá, âm tiết, tách từ, n-gram
+    tests/test_docx.py     (  9) — đọc/ghi Word, giữ định dạng, bốn chế độ xuất
+    tests/test_engine.py   ( 61) — tám tầng soát lỗi, danh từ riêng, viết hoa
+    tests/test_format.py   ( 72) — quy tắc thể thức, thành phần thể thức
+    tests/test_gui.py      ( 17) — dải thông báo, gương màu, luồng soát lỗi
+
+NHỮNG BÀI KIỂM THỬ BẮT BUỘC PHẢI CÓ (mỗi bài tương ứng một lỗi ở PHẦN 9):
+    - "Hôm nay bạn an gì. Tôi đang di chơi." -> bắt đủ cả ba lỗi.
+    - "Tôi đang di chơi." KHÔNG bị sửa thành "Tới đặng đi chơi."
+    - "cai nay" -> "cái này";  "Co" -> "Có"
+    - "Công trình cống Đôi đã hoàn thành." -> KHÔNG báo lỗi
+    - "..., Nhất là công tác..." -> BÁO lỗi viết hoa
+    - "Ban chỉ đạo", "Công an tỉnh", "Độc lập – Tự do – Hạnh phúc", "- Như trên;"
+      -> KHÔNG báo lỗi viết hoa
+    - Bảng thể thức phải được đọc TRƯỚC phần thân văn bản (test hồi quy lỗi #4)
+    - fix("Xin  chào các bạn   .") == "Xin chào các bạn."  (hồi quy lỗi #11)
+    - Số để trống "Số:         /CAT-ANKT" không sinh cảnh báo thiếu thành phần
+    - Tab đầu dòng được chấp nhận là thụt lề (hồi quy lỗi #18)
+    - Dải thông báo: sáu trạng thái, và KHÔNG dùng QMessageBox
+
+CÁCH CHẠY:
+    $env:QT_QPA_PLATFORM = "offscreen"
+    python -m pytest -q
+
+CÔNG CỤ ĐO CHẤT LƯỢNG (tools/evaluate.py) — phải chạy lại mỗi khi đổi ngưỡng
+hoặc đổi mô hình, vì MỌI thay đổi đều làm lệch các con số:
+    python tools/evaluate.py --sentences 300
+    # quét ngưỡng:
+    python tools/evaluate.py --sentences 300 --min-confusion 2.5 --min-fuzzy 4.0 \
+        --min-diacritic 1.0 --context-threshold -3.0
+
+
+================================================================================
+PHẦN 11 — ĐÓNG GÓI
+================================================================================
+- PyInstaller chế độ ONEDIR (KHÔNG dùng ONEDIR onefile — khởi động chậm và
+  không ghi được dữ liệu cạnh tệp chạy).
+- Loại bỏ các module Qt không dùng để giảm kích thước.
+- Sau khi đóng gói PHẢI chép thủ công vào thư mục sản phẩm:
+      data/ngram.sqlite, data/syllables.txt, data/whitelist.txt
+      LICENSE.txt, HUONG-DAN.md (bản sao README)
+- Sản phẩm gồm: VietSpell.exe (giao diện), vietspell-cli.exe (dòng lệnh),
+  thư mục data/, thư mục _internal/.
+- Kích thước tham chiếu: 196 MB.
+- Kiểm tra sau đóng gói: chạy smoke test khởi động giao diện và soát thử một tệp.
+- PHẢI tuân thủ LGPL của Qt: kèm giấy phép và ghi rõ cách thay thế thư viện.
+- Ghi công dữ liệu: Wikipedia CC BY-SA 4.0, OPUS/OpenSubtitles.
+
+
+================================================================================
+PHẦN 12 — CÁCH MỞ RỘNG (dành cho AI phát triển tiếp)
+================================================================================
+12.1. Thêm một quy tắc thể thức mới
+     - Nhóm mức ký tự: thêm FormatRule vào RULES trong core/format_rules.py, đặt
+       basis = BASIS_LEGAL hoặc BASIS_EDITORIAL cho đúng, rồi thêm logic trong
+       FormatChecker.check(). Nhớ khai báo độ ưu tiên trong RULE_PRIORITY nếu
+       quy tắc có thể chồng lấn quy tắc khác.
+     - Nhóm mức tệp Word: thêm DocRule vào DOC_RULES trong docx_io/format_check.py.
+     - Nhóm thành phần thể thức: thêm ElementRule vào ELEMENT_RULES trong
+       core/elements.py và logic trong element_check.py.
+
+12.2. Thêm một thành phần thể thức mới
+     - Thêm ElementSpec vào ND30_ELEMENTS / HD05_ELEMENTS (cỡ chữ, đậm, nghiêng,
+       in hoa, có bắt buộc không) và ghi rõ căn cứ.
+     - Thêm mẫu nhận diện trong ElementIdentifier.identify().
+     - Nếu thành phần có nội dung cố định, thêm vào CANONICAL_TEXT.
+
+12.3. Cải thiện chất lượng ngôn ngữ
+     - Cách rẻ nhất và hiệu quả nhất: THÊM NGỮ LIỆU rồi huấn luyện lại. Đã đo
+       được rằng việc thêm phụ đề phim cải thiện mọi chỉ số.
+     - Nếu định thay bằng mô hình học sâu: cân nhắc kỹ kích thước sản phẩm.
+     - Luôn đo lại bằng tools/evaluate.py trước và sau khi đổi, đừng đoán.
+
+12.4. Mở rộng danh từ riêng
+     - Thêm địa danh vào KNOWN_PLACE_NAMES trong core/proper_nouns.py.
+     - Thêm danh từ chỉ địa hình vào PLACE_HEAD_NOUNS.
+     - Thêm chức danh vào PERSON_TITLES.
+     Mỗi tên riêng bị bỏ sót là một khả năng báo nhầm, nên bổ sung dần theo
+     phản hồi người dùng.
+
+12.5. Nguyên tắc bất di bất dịch
+     - OFFLINE tuyệt đối.
+     - Không dùng hộp thoại thông báo; mọi thông báo nằm trong dải thông báo.
+     - Mọi cảnh báo phải nói rõ NGUYÊN NHÂN và CĂN CỨ, không chỉ nói "sai".
+     - Khi gán căn cứ pháp lý, phải đối chiếu văn bản gốc. Nhóm nào không có căn
+       cứ thì ghi thẳng là không có.
+     - Thà BỎ SÓT còn hơn BÁO NHẦM: người dùng mất niềm tin vào công cụ nhanh hơn
+       nhiều so với việc công cụ bỏ sót một lỗi.
+     - Mỗi lỗi báo nhầm được phát hiện PHẢI trở thành một bài kiểm thử hồi quy.
+
+================================================================================
+HẾT TÀI LIỆU
+================================================================================
