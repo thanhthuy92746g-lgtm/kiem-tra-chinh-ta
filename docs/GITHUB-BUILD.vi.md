@@ -1,16 +1,23 @@
-# Build Windows bằng GitHub Actions — chuẩn bị để duyệt
+# Build Windows bằng GitHub Actions
 
 Mục tiêu: tạo và kiểm tra `.exe` trên runner **windows-latest** của GitHub, dùng mô hình thật hiện có. Người dùng không cần cài Python/PyInstaller trên máy cá nhân cho bước build này.
 
-## Phạm vi dự kiến ghi vào GitHub
+## Phạm vi đã ghi vào GitHub theo sự đồng ý của người dùng
 
 - Kho: `thanhthuy92746g-lgtm/kiem-tra-chinh-ta`.
-- Nhánh dự kiến: `build/windows-exe`; hiện kho chưa có commit/nhánh main trên remote, không ghi đè nhánh có sẵn.
+- Nhánh: `build/windows-exe`; đã tạo commit đầu tiên của kho trên nhánh này, không ghi đè nhánh có sẵn. Remote HEAD hiện trỏ vào nhánh này.
 - Mã nguồn, kiểm thử, hướng dẫn, PDF HD05 làm căn cứ, lockfile, thông báo giấy phép và workflow `.github/workflows/check.yml`.
 - Gói `resources/trained-model.zip` khoảng **18,1 MiB**: SQLite đã kiểm chứng, từ vựng, báo cáo đánh giá, nguồn mô hình và ghi công. SHA-256 gói hiện tại: `eb73a9a7daa39cc695690d42c394293781123713469a00f535d7e79820fdd304`. Gói dùng whitelist trắng, không chép whitelist cá nhân.
 - Không đưa raw corpus, `.venv`, cache, tệp Word đầu vào của người dùng hoặc tệp xuất cá nhân vào kho. Các Word mẫu được tạo từ câu minh hoạ trong mã để kiểm thử.
 
-Nội dung đưa lên tuân theo chế độ công khai/riêng tư hiện có của kho. Hiện chỉ chuẩn bị cục bộ, **chưa commit/push và chưa chạy GitHub Actions**. Quyền ghi mã/mô hình vào GitHub cần người dùng xác nhận trước khi thực hiện.
+Người dùng đã đồng ý đưa mã/mô hình lên kho và chạy build Windows. Đã commit/push, theo dõi và sửa thiết lập CI. Lượt chạy [39010557364](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364) tại commit `39d31ecdd2f6bcce912f394147c103ae4724f95f` thành công: kiểm thử hai hệ và job đóng gói Windows đều đạt. Đã bổ sung thư viện EGL cho Linux và UTF-8 cho các lệnh Python trên Windows; không bỏ qua kiểm thử.
+
+## Bản Windows đã tạo
+
+- Artifact **VietSpell-Windows-x64-trained**, ID `12093091011`, khoảng **70,7 MB**; gồm ZIP bộ ONEDIR đã kiểm chứng bằng 32 kiểm tra phát hành. Digest SHA-256 của **artifact GitHub**: `be05793494ab9d46deb643c1c102a82b30bfc19ee39d55c7ccfdc6ab8a617da3` (không phải hash riêng của tệp exe hoặc ZIP bên trong).
+- Artifact **VietSpell-Windows-build-reports**, ID `12092807168`, khoảng **417 KB**, giữ báo cáo/Word mẫu và các bản xuất dùng kiểm chứng.
+- Vào trang run ở trên, đăng nhập GitHub rồi tải tại **Artifacts**. Endpoint tải không cho phiên ẩn danh trong cloud; binary chưa được tải về máy Linux này. Kết quả chạy Windows được xác minh qua trạng thái thành công của job, quy trình fail-on-error và sự tồn tại của hai artifact.
+- Giải nén toàn bộ ZIP tải về và ZIP bộ chương trình bên trong, mở `VietSpell/VietSpell.exe`. Không cần Python. Cần thử trực tiếp GUI và xem tài liệu trong Microsoft Word để hoàn tất kiểm chứng trực quan.
 
 ## Các bước tự động sau khi push
 

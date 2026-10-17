@@ -6,7 +6,13 @@
 
 `data/` không được theo dõi trong Git. Với checkout chưa có dữ liệu, `bootstrap_data.py` tạo **mô hình mẫu nhỏ** từ các câu tự soạn lặp 1.000 lần, chỉ để thử chức năng. Script giữ nguyên mô hình đã có; không dùng `--force` nếu muốn giữ mô hình thật. Mô hình mẫu không báo âm tiết lạ hàng loạt và hạn chế tìm gần đúng vì từ vựng quá nhỏ; không dùng nó để kết luận chất lượng soát văn bản thực tế.
 
-## Chạy trên Windows
+## Tải bản Windows đã đóng gói
+
+Đã build và kiểm tra trên Windows bằng GitHub Actions: [lượt chạy thành công](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364). Đăng nhập GitHub, vào **Artifacts**, tải **VietSpell-Windows-x64-trained** (khoảng 70,7 MB). Giải nén ZIP tải về và ZIP bên trong đến khi thấy thư mục `VietSpell`, rồi mở `VietSpell.exe`. Giữ nguyên toàn bộ `_internal/` và `data/`; không cần cài Python để dùng bản này.
+
+Pytest đã qua trên Linux/Windows; bộ đóng gói đã vượt 32 kiểm tra bằng executable, gồm hai hồ sơ và bốn chế độ xuất Word. Vẫn cần người dùng thử GUI trên màn hình và mở kết quả trong Microsoft Word. Artifact được giữ 14 ngày; có thể chạy lại workflow khi cần bản mới.
+
+## Chạy từ mã nguồn trên Windows
 
 ```powershell
 py -3.11 -m venv .venv
@@ -91,11 +97,11 @@ $env:QT_QPA_PLATFORM = "offscreen"
 .venv\Scripts\python tools\package_windows.py
 ```
 
-PyInstaller **ONEDIR**, gồm `VietSpell.exe`, `vietspell-cli.exe`, `_internal/`, `data/`, hướng dẫn và giấy phép. Không thể tạo và xác minh `.exe` Windows từ Linux. Kiểm tra bộ cài trên Windows thật: mở GUI, chạy CLI, soát Word mẫu, mở bốn kiểu xuất trong Microsoft Word và đo kích thước thư mục; mục tiêu dưới 250 MB chưa được xác nhận. Script không gọi onefile và không nhúng đường dẫn máy phát triển.
+PyInstaller **ONEDIR**, gồm `VietSpell.exe`, `vietspell-cli.exe`, `_internal/`, `data/`, hướng dẫn và giấy phép. Đã tạo/kiểm tra tự động `.exe` trên runner Windows của GitHub, đạt giới hạn thư mục 250 MiB. GUI offscreen/CLI và các tệp Word xuất đã được kiểm tra tự động; vẫn cần xem GUI trực tiếp và mở các kiểu xuất trong Microsoft Word. Script không gọi onefile và không nhúng đường dẫn máy phát triển.
 
-Với gói source-trained đầy đủ: trên Windows 10/11 x64 đã cài **Python 3.11 x64**, mở `tools/BUILD-WINDOWS.cmd`. Script cài theo lockfile, chạy pytest, build, soát bằng chính các executable, thử GUI của cả hai hồ sơ, xuất/đọc lại bốn chế độ và chỉ tạo ZIP Windows khi các kiểm tra đạt và thư mục dưới 250 MiB. Kết quả ở `dist/VietSpell/` và `dist/VietSpell-Windows-x64-trained.zip`. Cần mạng để cài phụ thuộc lần đầu; ứng dụng sau đóng gói hoạt động ngoại tuyến. Script này chưa được chạy trên Windows trong môi trường Linux hiện tại.
+Với gói source-trained đầy đủ: trên Windows 10/11 x64 đã cài **Python 3.11 x64**, mở `tools/BUILD-WINDOWS.cmd`. Script cài theo lockfile, chạy pytest, build, soát bằng chính các executable, thử GUI của cả hai hồ sơ, xuất/đọc lại bốn chế độ và chỉ tạo ZIP Windows khi các kiểm tra đạt và thư mục dưới 250 MiB. Kết quả ở `dist/VietSpell/` và `dist/VietSpell-Windows-x64-trained.zip`. Cần mạng để cài phụ thuộc lần đầu; ứng dụng sau đóng gói hoạt động ngoại tuyến. Packager đã chạy thành công trên Windows CI; trình chạy `.cmd` cho máy cá nhân chưa được thử trực tiếp.
 
-Workflow `.github/workflows/check.yml` chạy kiểm thử Linux/Windows. Khi đẩy nhánh `build/windows-exe` hoặc chạy `workflow_dispatch`, job Windows khôi phục **mô hình thật** từ `resources/trained-model.zip`, xác minh checksum/từ vựng/SQLite và build, kiểm tra hai executable trước khi lưu artifact `VietSpell-Windows-x64-trained`. Không dùng mô hình demo cho job phát hành. Gói mô hình CI được tạo bằng `python tools/ci_model.py prepare`, không kèm whitelist cá nhân, raw corpus hoặc tài liệu người dùng. Gói source-trained đã chứa `data/` nên không chép lặp ZIP mô hình CI vào ZIP nguồn; chạy lệnh prepare nếu muốn dùng CI từ gói nguồn. Xem [phạm vi đưa lên GitHub](docs/GITHUB-BUILD.vi.md). Chưa đẩy mã hoặc chạy workflow trên GitHub.
+Workflow `.github/workflows/check.yml` chạy kiểm thử Linux/Windows. Khi đẩy nhánh `build/windows-exe` hoặc chạy `workflow_dispatch`, job Windows khôi phục **mô hình thật** từ `resources/trained-model.zip`, xác minh checksum/từ vựng/SQLite và build, kiểm tra hai executable trước khi lưu artifact `VietSpell-Windows-x64-trained`. Không dùng mô hình demo cho job phát hành. Gói mô hình CI được tạo bằng `python tools/ci_model.py prepare`, không kèm whitelist cá nhân, raw corpus hoặc tài liệu người dùng. Gói source-trained đã chứa `data/` nên không chép lặp ZIP mô hình CI vào ZIP nguồn; chạy lệnh prepare nếu muốn dùng CI từ gói nguồn. Xem [phạm vi đã đưa lên GitHub và kết quả](docs/GITHUB-BUILD.vi.md). Người dùng đã cho phép ghi kho và nhánh đã được đẩy; lượt chạy `39010557364` thành công.
 
 ## Kiến trúc
 
