@@ -1,32 +1,37 @@
 {
-  "workflow_run": "https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364",
-  "build_commit": "39d31ecdd2f6bcce912f394147c103ae4724f95f",
-  "verified_utc": "2026-10-17T06:40:15Z",
+  "workflow_run": "https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39047586753",
+  "build_commit": "87ad671141925d64fad86d08ff39dcbc070deb27",
+  "verified_utc": "2026-10-17T16:05:08.698168+00:00",
   "workflow_conclusion": "success",
-  "test_targets": ["ubuntu-latest", "windows-latest"],
-  "pytest_cases_in_suite": 190,
-  "windows_packaging_job": "117332162570",
+  "change": "Separate number/date character ranges and font checks in combined Word headers for ND30 and HD05.",
+  "previous_workflow_run": "https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364",
+  "test_targets": [
+    "ubuntu-latest",
+    "windows-latest"
+  ],
+  "pytest_cases_in_suite": 222,
+  "windows_packaging_job": "117439536738",
   "windows_packaging_conclusion": "success",
-  "frozen_release_checks": 32,
+  "frozen_release_checks": 36,
   "folder_size_limit_mib": 250,
   "folder_size_gate_passed": true,
   "model_quality": "corpus",
   "model_sha256": "52847125dd6f51d79fe956b19ea3150ee1abb3a634201198c8afcb7e47e121d8",
   "artifacts": [
     {
-      "name": "VietSpell-Windows-x64-trained",
-      "id": "12093091011",
-      "size_display": "70.7 MB",
-      "github_artifact_sha256": "be05793494ab9d46deb643c1c102a82b30bfc19ee39d55c7ccfdc6ab8a617da3"
+      "name": "VietSpell-Windows-build-reports",
+      "id": "12106720675",
+      "size_display": "560 KB",
+      "github_artifact_sha256": "b571683a8ead3c3acfabe80641959ccea6180286b023277f3bffb17715daa146"
     },
     {
-      "name": "VietSpell-Windows-build-reports",
-      "id": "12092807168",
-      "size_display": "417 KB",
-      "github_artifact_sha256": "f8eeb001578850ffa16685661a0f442c6374a9ed0c605a456d3aa5c55cc586e7"
+      "name": "VietSpell-Windows-x64-trained",
+      "id": "12106607575",
+      "size_display": "70.8 MB",
+      "github_artifact_sha256": "9f372b7d8ad21e8ba6d2bb445c315294414d96bf9b31236b5c3e451edf9770c7"
     }
   ],
-  "verification_evidence": "Public GitHub run page shows success for both test targets and the Windows packaging job; artifacts exist. The fail-on-error packager validates both executables before archive creation.",
+  "verification_evidence": "Public run page identifies build commit and successful test matrix and packaging job; two artifacts have published IDs and digests. Fail-on-error packager runs the 36 release checks with both Windows executables before creating the archive.",
   "download_requires_github_login": true,
   "downloaded_into_linux_workspace": false,
   "gui_checked_with_windows_offscreen_worker": true,

@@ -8,9 +8,9 @@
 
 ## Tải bản Windows đã đóng gói
 
-Đã build và kiểm tra trên Windows bằng GitHub Actions: [lượt chạy thành công](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364). Đăng nhập GitHub, vào **Artifacts**, tải **VietSpell-Windows-x64-trained** (khoảng 70,7 MB). Giải nén ZIP tải về và ZIP bên trong đến khi thấy thư mục `VietSpell`, rồi mở `VietSpell.exe`. Giữ nguyên toàn bộ `_internal/` và `data/`; không cần cài Python để dùng bản này.
+Đã build và kiểm tra trên Windows bằng GitHub Actions: [lượt chạy thành công](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39047586753). Đăng nhập GitHub, vào **Artifacts**, tải **VietSpell-Windows-x64-trained** (khoảng 70,8 MB). Giải nén ZIP tải về và ZIP bên trong đến khi thấy thư mục `VietSpell`, rồi mở `VietSpell.exe`. Giữ nguyên toàn bộ `_internal/` và `data/`; không cần cài Python để dùng bản này.
 
-Pytest đã qua trên Linux/Windows; bộ đóng gói đã vượt 32 kiểm tra bằng executable, gồm hai hồ sơ và bốn chế độ xuất Word. Vẫn cần người dùng thử GUI trên màn hình và mở kết quả trong Microsoft Word. Artifact được giữ 14 ngày; có thể chạy lại workflow khi cần bản mới.
+Bộ 222 pytest đã qua trên Linux/Windows; bộ đóng gói đã vượt 36 kiểm tra bằng executable, gồm hai hồ sơ và bốn chế độ xuất Word. Vẫn cần người dùng thử GUI trên màn hình và mở kết quả trong Microsoft Word. Artifact được giữ 14 ngày; có thể chạy lại workflow khi cần bản mới.
 
 ## Chạy từ mã nguồn trên Windows
 
@@ -86,7 +86,7 @@ Không tự viết hoa “khoản”, “điểm” trong viện dẫn: phạm v
 
 Đặc tả có mâu thuẫn ở ví dụ số `CAT-ANKT` (“không có gạch nối” nhưng chuỗi có gạch nối). Bộ nhận diện dùng mẫu tên loại văn bản/`V/v` và vị trí, không suy luận tên loại chỉ dựa trên việc có dấu `-` trong mã đơn vị.
 
-Đã đối chiếu tài liệu phát triển bổ sung và sửa kiểm tra định dạng khi số văn bản/ngày tháng cùng một đoạn: mỗi phần có vùng ký tự riêng, tránh báo nhầm chữ đứng/nghiêng và bỏ sót chuỗi cỡ chữ. Xem [kết quả tiếp nhận và kiểm chứng](docs/REFERENCE-REVIEW.vi.md). Bản sửa hiện nằm trong mã nguồn, chưa có trong artifact Windows dẫn ở đầu tài liệu.
+Đã đối chiếu tài liệu phát triển bổ sung và sửa kiểm tra định dạng khi số văn bản/ngày tháng cùng một đoạn: mỗi phần có vùng ký tự riêng, tránh báo nhầm chữ đứng/nghiêng và bỏ sót chuỗi cỡ chữ. Xem [kết quả tiếp nhận và kiểm chứng](docs/REFERENCE-REVIEW.vi.md). Artifact Windows dẫn ở đầu tài liệu đã chứa bản sửa và được kiểm tra bằng executable.
 
 ## Kiểm thử và đóng gói
 
@@ -105,7 +105,7 @@ PyInstaller **ONEDIR**, gồm `VietSpell.exe`, `vietspell-cli.exe`, `_internal/`
 
 Với gói source-trained đầy đủ: trên Windows 10/11 x64 đã cài **Python 3.11 x64**, mở `tools/BUILD-WINDOWS.cmd`. Script cài theo lockfile, chạy pytest, build, soát bằng chính các executable, thử GUI của cả hai hồ sơ, xuất/đọc lại bốn chế độ và chỉ tạo ZIP Windows khi các kiểm tra đạt và thư mục dưới 250 MiB. Kết quả ở `dist/VietSpell/` và `dist/VietSpell-Windows-x64-trained.zip`. Cần mạng để cài phụ thuộc lần đầu; ứng dụng sau đóng gói hoạt động ngoại tuyến. Packager đã chạy thành công trên Windows CI; trình chạy `.cmd` cho máy cá nhân chưa được thử trực tiếp.
 
-Workflow `.github/workflows/check.yml` chạy kiểm thử Linux/Windows. Khi đẩy nhánh `build/windows-exe` hoặc chạy `workflow_dispatch`, job Windows khôi phục **mô hình thật** từ `resources/trained-model.zip`, xác minh checksum/từ vựng/SQLite và build, kiểm tra hai executable trước khi lưu artifact `VietSpell-Windows-x64-trained`. Không dùng mô hình demo cho job phát hành. Gói mô hình CI được tạo bằng `python tools/ci_model.py prepare`, không kèm whitelist cá nhân, raw corpus hoặc tài liệu người dùng. Gói source-trained đã chứa `data/` nên không chép lặp ZIP mô hình CI vào ZIP nguồn; chạy lệnh prepare nếu muốn dùng CI từ gói nguồn. Xem [phạm vi đã đưa lên GitHub và kết quả](docs/GITHUB-BUILD.vi.md). Người dùng đã cho phép ghi kho và nhánh đã được đẩy; lượt chạy `39010557364` thành công.
+Workflow `.github/workflows/check.yml` chạy kiểm thử Linux/Windows. Khi đẩy nhánh `build/windows-exe` hoặc chạy `workflow_dispatch`, job Windows khôi phục **mô hình thật** từ `resources/trained-model.zip`, xác minh checksum/từ vựng/SQLite và build, kiểm tra hai executable trước khi lưu artifact `VietSpell-Windows-x64-trained`. Không dùng mô hình demo cho job phát hành. Gói mô hình CI được tạo bằng `python tools/ci_model.py prepare`, không kèm whitelist cá nhân, raw corpus hoặc tài liệu người dùng. Gói source-trained đã chứa `data/` nên không chép lặp ZIP mô hình CI vào ZIP nguồn; chạy lệnh prepare nếu muốn dùng CI từ gói nguồn. Xem [phạm vi đã đưa lên GitHub và kết quả](docs/GITHUB-BUILD.vi.md). Người dùng đã cho phép ghi kho và nhánh đã được đẩy; lượt chạy `39047586753` thành công.
 
 ## Kiến trúc
 

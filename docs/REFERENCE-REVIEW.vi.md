@@ -17,7 +17,7 @@ Tài liệu được dùng để đối chiếu hành vi và yêu cầu phát tr
 | Dải thông báo, độ nhạy, QThread, màu sáng, lọc lỗi | Đã có; lỗi định dạng cần sửa trong Word không có ô gợi ý thay chữ giả |
 | Bốn chế độ RED/TRACK/PLAIN/HIGHLIGHT | Đã có; giữ bản gốc, trường/đối tượng và thay đổi cũ vẫn có giới hạn đã công bố |
 | Hồ sơ NĐ30 và HD05 | Tiếp tục dùng các quy tắc đã đối chiếu PDF, xem [LEGAL-REVIEW.md](LEGAL-REVIEW.md) |
-| Đóng gói ONEDIR, mục tiêu dưới 250 MiB | Bản Windows trước đã qua kiểm tra; thay đổi lần này mới được kiểm chứng trên mã nguồn Linux, chưa có exe Windows mới |
+| Đóng gói ONEDIR, mục tiêu dưới 250 MiB | Bản Windows cập nhật đã qua kiểm tra executable (36 ca) và giới hạn 250 MiB; vẫn cần xem GUI và Word trực tiếp |
 
 Các nhóm hồi quy ở Phần 9 được đối chiếu với `tests/test_core.py`, `test_engine.py`, `test_docx.py`, `test_format.py`, `test_gui.py`, `test_hd05.py` và công cụ kiểm tra phát hành. Không dùng tổng số bài của bản tham chiếu để kết luận đã tái lập đầy đủ bản đó.
 
@@ -51,5 +51,5 @@ Không bổ sung quy định pháp lý mới. Bố trí thực tế sau dàn tra
 - **222 pytest đạt trên Linux**: 190 bài của bản exe cũ, 17 bài công cụ nghiên cứu và 15 ca mới của lần sửa này.
 - Công cụ kiểm tra phát hành trên mã nguồn đạt **36/36**: mô hình thật, ca ngôn ngữ lỗi/sạch, HD05 đúng/sai, tám lượt xuất Word của hai hồ sơ, giữ nguyên bản gốc và hai worker GUI offscreen; thêm bốn kiểm tra số/ngày chung đoạn đúng và cố ý sai trên hai hồ sơ. Báo cáo tại `data/release-check-windows-update-source-final-20261017/release-report.json`. Bộ kiểm tra này cũng chạy bằng hai executable trước khi tạo artifact Windows mới.
 - Mô hình/ngưỡng ngôn ngữ không đổi; không huấn luyện lại hoặc dùng các ca thử để báo tăng độ chính xác.
-- Artifact Windows từ lượt chạy `39010557364` là bản trước thay đổi này; không coi đó là exe đã chứa bản sửa. Vẫn cần build/kiểm tra Windows và xem trực tiếp trong Microsoft Word khi phát hành bản cập nhật.
+- Artifact Windows mới từ [lượt chạy 39047586753](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39047586753), commit `87ad671141925d64fad86d08ff39dcbc070deb27`, đã chứa bản sửa. Bộ 222 pytest Linux/Windows đạt; executable vượt 36 kiểm tra và giới hạn 250 MiB. Gói khoảng 70,8 MB, artifact `12106607575`. Lượt `39010557364` là bản cũ. Vẫn cần xem GUI trực tiếp và mở tệp xuất trong Microsoft Word; xem docs/WINDOWS-RESULTS.json.
 - Nghiên cứu nguồn Công an giữ nguyên phạm vi và kết quả ở [NEWS-PILOT.vi.md](NEWS-PILOT.vi.md). Việc sửa ứng dụng ngoại tuyến không phụ thuộc vào việc mở được các nguồn báo.

@@ -12,12 +12,12 @@ Mô hình thật từ Wikipedia tiếng Việt (dump 01/10/2026, 80.000 bài) v�
 ## Kiểm chứng đạt trên Linux
 
 - Python 3.12.14, PySide6 6.8.3, python-docx 1.2.0. Đã cài từ lockfile có hash ở virtualenv sạch; pip check không có phụ thuộc hỏng.
-- **222 bài pytest đạt tại checkout Linux hiện tại**: 190 bài của phiên bản exe, 17 bài công cụ nghiên cứu RSS/so sánh dữ liệu và 15 ca mới về số/ngày chung đoạn. Artifact Windows trước đó đã qua bộ 190 bài; chưa build lại cho bản sửa nhận diện/định dạng này. Mô hình và ngưỡng ngôn ngữ giữ nguyên.
+- **222 bài pytest đạt trên Linux và Windows CI**: 190 bài của phiên bản exe ban đầu, 17 bài công cụ nghiên cứu RSS/so sánh dữ liệu và 15 ca mới về số/ngày chung đoạn. Đã build Windows mới có bản sửa nhận diện/định dạng. Mô hình và ngưỡng ngôn ngữ giữ nguyên.
 - **17 kiểm tra sản phẩm đạt trên mô hình thật**: ba lỗi quyết định, câu mất dấu, giữ Tôi/đang, không sửa cống Đôi, viết hoa Nhất, minh tế/sử lý và các ca sạch.
 - GUI offscreen chạy vòng lặp Qt và worker thật với Word mẫu: bảng 16 phát hiện, đủ an→ăn, .→?, di→đi. Có kiểm tra vị trí UTF-16 sau emoji.
 - Xuất/đọc lại RED, TRACK, PLAIN, HIGHLIGHT bằng mô hình thật; nội dung sửa đúng và HIGHLIGHT giữ nguyên chữ. Kiểm thử bảo vệ bản gốc, định dạng không liên quan và revision XML.
 - Lõi soát được kiểm tra khi socket bị chặn; ứng dụng không truy cập mạng khi chạy.
-- **32 kiểm tra phát hành đạt trên mã nguồn và 32 kiểm tra đạt trên binary PyInstaller Linux**: model doctor, các ca lỗi/sạch, HD05 đúng/sai, xuất/đọc lại bốn chế độ của hai hồ sơ, giữ nguyên bản gốc, GUI worker cả hai hồ sơ. Báo cáo ở data/release-check/ và data/release-frozen-linux/. Binary đã thử trong đường dẫn có khoảng trắng và chữ Việt.
+- **36 kiểm tra phát hành đạt trên source Linux và executable Windows mới**: model doctor, các ca lỗi/sạch, HD05 đúng/sai, xuất/đọc lại bốn chế độ của hai hồ sơ, giữ nguyên bản gốc, GUI worker và bốn ca số/ngày chung đoạn. Binary PyInstaller Linux của lượt trước đã qua 32 kiểm tra, chưa build lại Linux cho bản sửa này. Báo cáo source mới ở data/release-check-windows-update-source-final-20261017/; kết quả Windows ở docs/WINDOWS-RESULTS.json.
 - Mẫu HD05 đúng (kế hoạch và công văn) không có phát hiện với mô hình thật; mẫu cố ý sai phát hiện các lỗi số văn bản, cỡ/nghiêng trích yếu, ngày tháng, lùi đầu dòng, chức vụ và nơi nhận. Đây là ca hồi quy tự dựng, không thay thế bộ lỗi văn bản thực tế.
 
 ## Đo phát triển
@@ -37,7 +37,7 @@ NĐ30: đã đọc PDF gốc từ cổng Chính phủ, OCR tra cứu và xem ả
 
 Đã nhận và đối chiếu **PDF 36 trang Hướng dẫn 05-HD/VPTW ngày 27/5/2026** do người dùng gửi; lưu tại docs/legal/HD05-VPTW-2026.pdf. Đã sửa các thông số kế thừa sai từ NĐ30 và cách nhận diện thành phần Đảng, gỡ cảnh báo “chưa đối chiếu bản gốc”. Không còn cần truy cập cổng bị chặn để hoàn tất đối chiếu tập quy tắc này. Xem docs/LEGAL-REVIEW.md cho căn cứ từng quy tắc và giới hạn về dàn trang, A5, lề hai mặt, tab, số trang, chữ ký/con dấu.
 
-Đã build và kiểm chứng ONEDIR trên **Linux và Windows**. Lượt chạy GitHub [39010557364](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39010557364) thành công tại commit `39d31ecdd2f6bcce912f394147c103ae4724f95f`: pytest hai hệ qua, job đóng gói Windows qua đủ kiểm tra bằng executable và đạt giới hạn thư mục 250 MiB. Artifact bộ Windows khoảng 70,7 MB, artifact báo cáo khoảng 417 KB. Chưa xem GUI trên màn hình hoặc mở tệp xuất bằng Microsoft Word. Xem docs/GITHUB-BUILD.vi.md và docs/WINDOWS-RESULTS.json.
+Đã build ONEDIR trên Linux ở lượt trước và cập nhật **Windows** bằng lượt GitHub [39047586753](https://github.com/thanhthuy92746g-lgtm/kiem-tra-chinh-ta/actions/runs/39047586753), thành công tại commit `87ad671141925d64fad86d08ff39dcbc070deb27`: bộ 222 pytest hai hệ qua, job đóng gói Windows vượt 36 kiểm tra bằng executable và giới hạn thư mục 250 MiB. Artifact bộ Windows `12106607575` khoảng 70,8 MB, báo cáo `12106720675` khoảng 560 KB. Chưa xem GUI trên màn hình hoặc mở tệp xuất bằng Microsoft Word. Xem docs/GITHUB-BUILD.vi.md và docs/WINDOWS-RESULTS.json.
 
 `tools/BUILD-WINDOWS.cmd` chuẩn bị một lượt cài, pytest, build và kiểm tra trên Windows x64 có Python 3.11 x64. Packager dùng chính hai executable để soát/xuất/kiểm tra GUI, đặt báo cáo vào BUILD-REPORT.json và chỉ tạo ZIP khi đạt kiểm tra cùng giới hạn 250 MiB. Từ chối mô hình mẫu trừ khi truyền rõ --allow-demo.
 
@@ -49,7 +49,7 @@ Chỉ soát thân và bảng; chưa soát đầu/chân trang, footnote/endnote/t
 
 Đã đọc tài liệu người dùng bổ sung ngày 17/10/2026, đối chiếu với mã và căn cứ pháp lý đã kiểm chứng. Sửa lỗi kiểm tra toàn đoạn khi số/ngày chung một dòng: tách phạm vi số và địa danh/ngày, nhận diện số Đảng trong đoạn có tab, dùng cỡ chữ đúng phần ngày cho chuỗi Quốc hiệu/Tiêu ngữ/Ngày. Giữ phần địa danh nếu có tab bên trong dòng ngày. Có 15 ca hồi quy mới, tổng 222 pytest đạt trên Linux.
 
-Đã chạy lại **36/36 kiểm tra phát hành trên mã nguồn hiện tại**, gồm mô hình thật, Word hai hồ sơ/bốn kiểu xuất, worker GUI và bốn ca số/ngày chung đoạn qua CLI. Báo cáo ở data/release-check-windows-update-source-final-20261017/release-report.json. Hash mô hình không đổi. Đang chuẩn bị build exe chứa bản sửa này; không gán kết quả của binary cũ cho mã mới. Các giá trị pháp lý, số đo/tổng kiểm thử tham chiếu và nhận định chưa có chứng cứ được phân biệt rõ ở docs/REFERENCE-REVIEW.vi.md.
+Đã chạy lại **36/36 kiểm tra phát hành trên source và executable Windows mới**, gồm mô hình thật, Word hai hồ sơ/bốn kiểu xuất, worker GUI và bốn ca số/ngày chung đoạn qua CLI. Báo cáo source ở data/release-check-windows-update-source-final-20261017/release-report.json; Windows ở docs/WINDOWS-RESULTS.json. Hash mô hình không đổi. Bản exe mới đã tạo thành công, không dùng kết quả binary cũ thay cho mã mới. Các giá trị pháp lý, số đo/tổng kiểm thử tham chiếu và nhận định chưa có chứng cứ được phân biệt rõ ở docs/REFERENCE-REVIEW.vi.md.
 
 ## Thử ngữ liệu Công an nhân dân
 
