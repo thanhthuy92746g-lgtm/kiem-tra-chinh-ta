@@ -1,0 +1,22 @@
+{
+  "purpose": "Thử ngữ liệu tiếng Việt công khai phục vụ soát văn bản Công an nhân dân",
+  "max_articles": 60,
+  "allocation_unit": "accepted_full_articles_before_deduplication_and_split",
+  "sources": [
+    {"host": "bocongan.gov.vn", "name": "Cổng thông tin điện tử Bộ Công an", "max_articles": 18, "identity_status": "pending_live_verification"},
+    {"host": "cand.com.vn", "name": "Báo Công an nhân dân", "max_articles": 18, "identity_status": "pending_live_verification"},
+    {"host": "congan.ninhbinh.gov.vn", "name": "Công an tỉnh Ninh Bình", "max_articles": 15, "identity_status": "pending_live_verification"}
+  ],
+  "other_provinces": {
+    "reserved_articles": 9,
+    "target_sources": 3,
+    "max_articles_per_source": 3,
+    "hosts": [],
+    "selection": "Chỉ thêm miền sau khi xác minh liên kết chính thức; giữ ít nhất một tỉnh hoàn toàn ngoài train/dev. Không suy đoán miền hoặc dùng wildcard."
+  },
+  "notes": [
+    "Đây là hạn mức lấy mẫu thử, không phải tỷ lệ trộn toàn bộ dữ liệu huấn luyện hoặc trọng số đã được chứng minh tối ưu.",
+    "Không bù nguồn thiếu bằng nguồn còn lại; báo số bài và số âm tiết thực sau lọc theo từng miền.",
+    "Chưa xác minh trực tiếp website, RSS, điều kiện sử dụng hoặc HTML vì proxy chặn CONNECT 403. Không coi tên miền dự kiến là bằng chứng đã xác minh nguồn."
+  ]
+}

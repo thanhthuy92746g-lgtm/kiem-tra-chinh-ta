@@ -9,7 +9,7 @@ from ..core.types import Issue, Suggestion
 from .format_check import inherited_font, merge_repeats
 
 NUMBER = re.compile(r"Số\s*:\s*([0-9]*)\s*/([A-ZĐ0-9/-]+)", re.I)
-PARTY_NUMBER = re.compile(r"^Số\s*:?[ \t]*([0-9]*)\s*[-/]\s*([A-ZĐ0-9/-]+)")
+PARTY_NUMBER = re.compile(r"(?:^|(?<=[\t\n]))[ \t]*Số\s*:?[ \t]*([0-9]*)\s*[-/]\s*([A-ZĐ0-9/-]+)")
 DATE = re.compile(r"\bngày\s*(?:\d{1,2}\s*)?tháng\s*(?:\d{1,2}\s*)?năm\s*(?:\d{4})?", re.I)
 DOCUMENT_TYPES = {"BÁO CÁO", "QUYẾT ĐỊNH", "THÔNG BÁO", "KẾ HOẠCH", "TỜ TRÌNH", "CHỈ THỊ", "NGHỊ QUYẾT", "HƯỚNG DẪN", "QUY CHẾ", "QUY ĐỊNH", "KẾT LUẬN", "CHƯƠNG TRÌNH", "THÔNG TRI", "THÔNG CÁO", "BIÊN BẢN", "ĐỀ ÁN"}
 TYPE_CODES = {"BC", "QĐ", "QD", "TB", "KH", "TTr", "CT", "NQ", "HD", "QC", "QĐ"}
@@ -50,6 +50,24 @@ class ElementIdentifier:
             occupied.add(id(block))
 
         number_pattern = NUMBER if profile == "HC-ND30" else PARTY_NUMBER
+
+        def add_date(block):
+            match = DATE.search(block.text)
+            if match is None:
+                return False
+            # An aligned header may put upright number and italic date in the
+            # same paragraph. Keep the locality with the date, but exclude the
+            # neighbouring element and the separating tab/line break.
+            number = number_pattern.search(block.text)
+            start = number.end() if number is not None and number.end() <= match.start() else 0
+            end = match.end()
+            while start < end and block.text[start].isspace():
+                start += 1
+            while end > start and block.text[end-1].isspace():
+                end -= 1
+            add("date", block, start=start, end=end)
+            return True
+
         type_index = next((i for i, b in enumerate(blocks) if b.text.strip().upper() in DOCUMENT_TYPES), None)
         number_index = None
         for i, b in enumerate(blocks):
@@ -60,8 +78,12 @@ class ElementIdentifier:
                 if SequenceMatcher(None, folded, target).ratio() > 0.82:
                     add(role, b)
                     break
-            if number_pattern.search(text):
-                add("number", b)
+            number = number_pattern.search(b.text)
+            if number is not None:
+                start = number.start()
+                while b.text[start].isspace():
+                    start += 1
+                add("number", b, start=start, end=number.end())
                 if number_index is None:
                     number_index = i
             label = re.match(r"^\s*Nơi nhận\s*:", b.text, re.I)
@@ -79,8 +101,7 @@ class ElementIdentifier:
             for b in blocks[number_index:number_index+6]:
                 if b.text.strip().upper() in DOCUMENT_TYPES:
                     break
-                if DATE.search(b.text):
-                    add("date", b)
+                if add_date(b):
                     break
             agency = [b for b in blocks[:number_index] if id(b) not in occupied and b.text.strip() and not re.fullmatch(r"[*_\-–—\s]+", b.text)]
             if agency:
@@ -89,8 +110,7 @@ class ElementIdentifier:
                     add("agency_parent", b, "medium")
         else:
             for b in blocks[:10]:
-                if DATE.search(b.text):
-                    add("date", b)
+                if add_date(b):
                     break
         if profile == "DANG-HD05" and number_index is not None and type_index is None:
             number_block = blocks[number_index]
@@ -216,7 +236,7 @@ def check_elements(read, profile="HC-ND30"):
         sizes = {}
         for e in identified:
             if e.role in {"national", "motto", "date"}:
-                values = {size.pt for span in e.block.runs if span.text.strip() and (size := inherited_font(span.run, "size", read.document)) is not None}
+                values = {size.pt for span in e.runs if span.text.strip() and (size := inherited_font(span.run, "size", read.document)) is not None}
                 if len(values) == 1:
                     sizes[e.role] = values.pop()
         if {"national", "motto", "date"} <= sizes.keys() and not sizes["national"]+1 == sizes["motto"] == sizes["date"]:

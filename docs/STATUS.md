@@ -12,7 +12,7 @@ Mô hình thật từ Wikipedia tiếng Việt (dump 01/10/2026, 80.000 bài) v�
 ## Kiểm chứng đạt trên Linux
 
 - Python 3.12.14, PySide6 6.8.3, python-docx 1.2.0. Đã cài từ lockfile có hash ở virtualenv sạch; pip check không có phụ thuộc hỏng.
-- **190 bài pytest đạt**: ngôn ngữ, Unicode/run, thứ tự bảng, thể thức, kế thừa style/theme, worker/cancel Qt, chia dữ liệu, cài mô hình an toàn và 14 ca HD05 mới.
+- **222 bài pytest đạt tại checkout Linux hiện tại**: 190 bài của phiên bản exe, 17 bài công cụ nghiên cứu RSS/so sánh dữ liệu và 15 ca mới về số/ngày chung đoạn. Artifact Windows trước đó đã qua bộ 190 bài; chưa build lại cho bản sửa nhận diện/định dạng này. Mô hình và ngưỡng ngôn ngữ giữ nguyên.
 - **17 kiểm tra sản phẩm đạt trên mô hình thật**: ba lỗi quyết định, câu mất dấu, giữ Tôi/đang, không sửa cống Đôi, viết hoa Nhất, minh tế/sử lý và các ca sạch.
 - GUI offscreen chạy vòng lặp Qt và worker thật với Word mẫu: bảng 16 phát hiện, đủ an→ăn, .→?, di→đi. Có kiểm tra vị trí UTF-16 sau emoji.
 - Xuất/đọc lại RED, TRACK, PLAIN, HIGHLIGHT bằng mô hình thật; nội dung sửa đúng và HIGHLIGHT giữ nguyên chữ. Kiểm thử bảo vệ bản gốc, định dạng không liên quan và revision XML.
@@ -44,6 +44,22 @@ NĐ30: đã đọc PDF gốc từ cổng Chính phủ, OCR tra cứu và xem ả
 Workflow GitHub Actions đã chạy kiểm thử Linux/Windows rồi build **mô hình thật** trên Windows. `tools/ci_model.py` tạo gói riêng 18,1 MiB ở resources/trained-model.zip, gồm SQLite, từ vựng, báo cáo và ghi công; whitelist cá nhân được thay bằng tệp trắng. Đã thử đóng gói/khôi phục mô hình cục bộ, xác minh checksum và chạy lại đủ **32 kiểm tra phát hành trên mô hình vừa khôi phục**. Đã kiểm tra từ chối ghi đè thư mục có dữ liệu, checksum hỏng và thành phần ZIP ngoài danh sách; không đưa raw corpus/tài liệu người dùng vào gói CI. Người dùng đã đồng ý ghi GitHub, nhánh đã được đẩy và bộ exe đã được tạo trên runner Windows. Máy cloud hiện tại vẫn Linux, không chạy trực tiếp binary Windows tại đây.
 
 Chỉ soát thân và bảng; chưa soát đầu/chân trang, footnote/endnote/textbox. Field/đối tượng/Track Changes sẵn có có giới hạn sửa tự động. Bộ sinh 25.481 dạng/từ vựng 7.880 ít hơn tham chiếu; có thể báo từ hiếm/ngoại lai và bỏ sót lỗi giống tên riêng. Cần bộ gán nhãn mới để đánh giá tổng quát.
+
+## Tiếp nhận tài liệu phát triển bổ sung
+
+Đã đọc tài liệu người dùng bổ sung ngày 17/10/2026, đối chiếu với mã và căn cứ pháp lý đã kiểm chứng. Sửa lỗi kiểm tra toàn đoạn khi số/ngày chung một dòng: tách phạm vi số và địa danh/ngày, nhận diện số Đảng trong đoạn có tab, dùng cỡ chữ đúng phần ngày cho chuỗi Quốc hiệu/Tiêu ngữ/Ngày. Giữ phần địa danh nếu có tab bên trong dòng ngày. Có 15 ca hồi quy mới, tổng 222 pytest đạt trên Linux.
+
+Đã chạy lại **36/36 kiểm tra phát hành trên mã nguồn hiện tại**, gồm mô hình thật, Word hai hồ sơ/bốn kiểu xuất, worker GUI và bốn ca số/ngày chung đoạn qua CLI. Báo cáo ở data/release-check-windows-update-source-final-20261017/release-report.json. Hash mô hình không đổi. Đang chuẩn bị build exe chứa bản sửa này; không gán kết quả của binary cũ cho mã mới. Các giá trị pháp lý, số đo/tổng kiểm thử tham chiếu và nhận định chưa có chứng cứ được phân biệt rõ ở docs/REFERENCE-REVIEW.vi.md.
+
+## Thử ngữ liệu Công an nhân dân
+
+Theo yêu cầu mới nhất, chuyển ưu tiên sang Bộ Công an, Báo Công an nhân dân, Công an tỉnh Ninh Bình và một số Công an tỉnh khác. Đã cấu hình ngân sách thử 60 bài: 18/18/15 từ ba nguồn chính, dành 9 bài cho ba tỉnh bổ sung chưa chọn miền; không bù phần thiếu. Công cụ RSS/Atom áp hạn mức theo miền qua nhiều feed; chuẩn bị dữ liệu có thể giữ cả nguồn và bản đăng lại ngoài train/dev, báo câu/âm tiết theo nguồn/tập. Cấu hình ở resources/police-pilot.json; kế hoạch/giới hạn ở docs/NEWS-PILOT.vi.md.
+
+Người dùng đã xuất bản cấu hình bổ sung ba miền Công an. Đã đọc lại backend: revision=null, phiên bản mới `a0400ba7-9431-485f-9d06-e5d91584a49b~cecfgver_6ad354d41a6c8192bb90a66542869e64`, có đủ bocongan.gov.vn/cand.com.vn/congan.ninhbinh.gov.vn. Không yêu cầu người dùng Lưu/Xuất bản cùng thay đổi thêm lần nữa.
+
+Sau xuất bản, cả ba đích vẫn bị proxy CONNECT 403 trước khi tới website; curl xác nhận lớp proxy Envoy trả 403. Đối chứng GitHub và vanban.chinhphu.vn trả HTTP 200 trên cùng máy. Đây là chặn truy cập các nguồn mới trong phiên cloud đang chạy, không phải mất toàn bộ Internet, thiếu token hoặc bằng chứng website từ chối thu thập. Chưa xác định được cơ chế đồng bộ/chính sách mạng phía nền tảng; không dùng proxy khác hoặc tắt TLS để thử vượt chặn. Chưa xác minh trực tiếp danh tính nguồn, điều kiện/RSS/HTML, chưa thu/train bài báo nào. Cần kiểm tra trên phiên cloud mới dùng cấu hình đã xuất bản; nếu vẫn 403, dùng báo cáo chẩn đoán để xử lý với hỗ trợ nền tảng. Các báo tổng hợp của lượt trước vẫn ghi trong lịch sử, không thuộc ngân sách chuyên ngành hiện tại.
+
+Đã huấn luyện đối chứng Wiki riêng 2.920.396 câu/45.323.822 lượt âm tiết, từ vựng 6.622; đạt 14/17 kiểm tra sản phẩm, không promote. Đã đo cùng lỗi cố định trên 300 wiki + 300 OPUS; lợi ích trên wiki không nhất quán, sửa đúng trên OPUS giảm. Đây là đo phát triển trên lỗi nhân tạo, không phải độ chính xác hành chính tự nhiên hoặc kết quả thử báo chí. Hash mô hình đang dùng vẫn giữ nguyên 52847125dd6f51d79fe956b19ea3150ee1abb3a634201198c8afcb7e47e121d8.
 
 ## Cấu hình và bàn giao
 

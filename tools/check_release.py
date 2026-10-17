@@ -12,6 +12,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from docx import Document
+from docx.shared import Pt
+
 from make_party_sample import make_party_sample
 from make_sample import make_sample
 from validate_model import CLEAN, REQUIRED
@@ -85,6 +88,47 @@ def verify(output, cli=None, gui=None, allow_demo=False):
             if clean_result["issues"]:
                 raise ValueError(f"Mẫu HD05 đúng bị báo lỗi: {clean_result['issues']}")
             checked(f"HD05 clean {'letter' if letter else 'plan'}")
+        # Exercise the new element ranges through the real CLI too, including
+        # frozen Windows builds. Unit tests alone do not test the packaged code.
+        for profile in ("HC-ND30", "DANG-HD05"):
+            combined = output / f"combined-header-{profile}.docx"
+            if profile == "HC-ND30":
+                make_sample(combined)
+            else:
+                make_party_sample(combined)
+            document = Document(combined)
+            left, right = document.tables[0].rows[0].cells
+            number = next(p for p in left.paragraphs if p.text.startswith("Số"))
+            date = next(p for p in right.paragraphs if "ngày" in p.text)
+            number_text, date_text = number.text, date.text
+            date.clear()
+            number.clear()
+            size = 13 if profile == "HC-ND30" else 14
+            number_run = number.add_run(number_text)
+            number_run.font.size, number_run.italic, number_run.bold = Pt(size), False, False
+            number.add_run("\t")
+            date_run = number.add_run(date_text)
+            date_run.font.size, date_run.italic, date_run.bold = Pt(size), True, False
+            if profile == "HC-ND30":
+                national, motto = right.paragraphs[:2]
+                national.text = national.text.upper()
+                national.runs[0].font.size = Pt(12)
+                motto.runs[0].font.size = Pt(13)
+            document.save(combined)
+            header_findings = [i for i in check_file(combined, profile)["issues"]
+                               if i["rule_id"] in {"MISSING_DATE", "MISSING_NUMBER", "ELEMENT_SIZE_CHAIN"}
+                               or i["rule_id"].startswith("ELEMENT_") and i["rule_id"].endswith(("_NUMBER", "_DATE"))]
+            if header_findings:
+                raise ValueError(f"Số/ngày chung đoạn đúng bị báo sai: {profile}: {header_findings}")
+            checked(f"combined header independent fonts / {profile}")
+            date_run.italic = False
+            bad_header = output / f"combined-header-{profile}-wrong-date.docx"
+            document.save(bad_header)
+            findings = check_file(bad_header, profile)["issues"]
+            italic = [i for i in findings if i["rule_id"] in {"ELEMENT_ITALIC_NUMBER", "ELEMENT_ITALIC_DATE"}]
+            if [(i["rule_id"], i["text"]) for i in italic] != [("ELEMENT_ITALIC_DATE", date_text)]:
+                raise ValueError(f"Phạm vi cảnh báo ngày chưa đúng: {profile}: {italic}")
+            checked(f"combined header date error span / {profile}")
         for source, profile in ((sample, "HC-ND30"), (party_bad, "DANG-HD05")):
             original_hash = hashlib.sha256(source.read_bytes()).hexdigest()
             original_text = read_docx(source).text

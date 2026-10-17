@@ -62,6 +62,8 @@ Các công cụ dưới `tools/` chỉ phục vụ phát triển; tải ngữ li
 
 Các bước đánh giá và cài ứng viên an toàn xem [quy trình dữ liệu](docs/DATA-PIPELINE.md). Dùng thư mục đầu ra mới nếu dữ liệu cũ đã có.
 
+Đang chuẩn bị thử ngữ liệu công khai phục vụ văn bản Công an nhân dân theo [kế hoạch và báo cáo pilot](docs/NEWS-PILOT.vi.md): ưu tiên Bộ Công an, Báo Công an nhân dân, Công an tỉnh Ninh Bình và một số tỉnh khác. Hạn mức nguồn lưu ở [cấu hình lấy mẫu](resources/police-pilot.json). Ba miền chính còn bị proxy chặn; chưa train bằng bài báo. Đối chứng Wikipedia riêng đã đo trên cùng bộ lỗi với bản hiện tại, trượt 3/17 ca hồi quy nên không thay mô hình trong exe. Công cụ nghiên cứu RSS/tách bài/so sánh nằm dưới tools/, không được gọi khi dùng ứng dụng.
+
 Huấn luyện lọc từ vựng bằng âm tiết sinh theo luật, ghi unigram/bigram/trigram lên đĩa theo lô, chỉ loại mục hiếm ở bước cuối để không làm mất số đếm tích luỹ. `--prune-every` được giữ tên theo đặc tả nhưng là chu kỳ **ghi bộ đệm**, không xoá n-gram mỗi lô. Nếu huấn luyện bị ngắt, kiểm tra rồi xoá `_ngram-staging.sqlite` trước khi chạy lại; mô hình cũ chỉ được thay sau khi hoàn tất. Giải mã wiki ở mức đơn giản, chưa tương đương bộ trích xuất MediaWiki chuyên dụng.
 
 Nguồn: `dumps.wikimedia.org` (dump Wikipedia 01/10/2026), `object.pouta.csc.fi` (OPUS/OpenSubtitles v2018). Cả hai đã được tải thành công. Wikipedia đã khớp checksum MD5 do Wikimedia công bố; SHA-256 bổ sung lưu bản đã tải. OPUS chưa có checksum độc lập từ nhà phát hành trong quy trình này, gzip kiểm tra CRC khi đọc hết. TLS luôn được xác minh. 300 câu wiki và 300 câu hội thoại được giữ riêng, loại câu trùng khỏi cả hai tập huấn luyện. Các tập này cũng được dùng chẩn đoán bộ soát nên kết quả sau sửa là đo phát triển, chưa phải kiểm định mù.
@@ -83,6 +85,8 @@ Hồ sơ `HC-ND30` theo các mục Nghị định 30/2020/NĐ-CP mà đặc tả
 Không tự viết hoa “khoản”, “điểm” trong viện dẫn: phạm vi ở cuối Mục V.7 nêu phần/chương/mục/tiểu mục/điều. Trích yếu công văn sau V/v dùng cỡ 12–13, chữ đứng; không áp nhầm quy tắc trích yếu văn bản có tên loại (13–14 đậm). Không bắt đổi “HÒA/HOÀ” giữa hai cách đặt dấu trong quốc hiệu viết hoa.
 
 Đặc tả có mâu thuẫn ở ví dụ số `CAT-ANKT` (“không có gạch nối” nhưng chuỗi có gạch nối). Bộ nhận diện dùng mẫu tên loại văn bản/`V/v` và vị trí, không suy luận tên loại chỉ dựa trên việc có dấu `-` trong mã đơn vị.
+
+Đã đối chiếu tài liệu phát triển bổ sung và sửa kiểm tra định dạng khi số văn bản/ngày tháng cùng một đoạn: mỗi phần có vùng ký tự riêng, tránh báo nhầm chữ đứng/nghiêng và bỏ sót chuỗi cỡ chữ. Xem [kết quả tiếp nhận và kiểm chứng](docs/REFERENCE-REVIEW.vi.md). Bản sửa hiện nằm trong mã nguồn, chưa có trong artifact Windows dẫn ở đầu tài liệu.
 
 ## Kiểm thử và đóng gói
 

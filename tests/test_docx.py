@@ -225,6 +225,73 @@ def test_date_and_number_same_paragraph():
     assert "number" in roles and "date" in roles
 
 
+def combined_header(profile, *, date_first=False, decomposed=False, wrong_role=None, date_size=None):
+    document = header_document()
+    # Put both elements in one paragraph; remove the separate date to make the
+    # case exercise the combined line rather than a second copy of the date.
+    document.tables[0].cell(0, 1).paragraphs[-1].clear()
+    paragraph = document.tables[0].cell(0, 0).paragraphs[-1]
+    paragraph.clear()
+    number = "Số: 123/CAT-ANKT" if profile == "HC-ND30" else "Số 05-CV/ĐU"
+    date = "Ninh Bình, ngày 02 tháng 10 năm 2026"
+    values = [("number", number), ("date", date)]
+    if date_first:
+        values.reverse()
+    paragraph.add_run("  ")
+    for index, (role, value) in enumerate(values):
+        if index:
+            paragraph.add_run("\t")
+        run = paragraph.add_run(ud.normalize("NFD", value) if decomposed else value)
+        run.italic = (role == "date") != (role == wrong_role)
+        run.font.size = Pt(date_size if role == "date" and date_size else 13 if profile == "HC-ND30" else 14)
+    return document, {"number": number, "date": date}
+
+
+@pytest.mark.parametrize("profile", ["HC-ND30", "DANG-HD05"])
+@pytest.mark.parametrize("date_first", [False, True])
+@pytest.mark.parametrize("decomposed", [False, True])
+def test_combined_header_formats_and_spans_are_independent(profile, date_first, decomposed):
+    document, expected = combined_header(profile, date_first=date_first, decomposed=decomposed)
+    read = read_docx(saved(document))
+    findings, elements = check_elements(read, profile)
+    actual = {e.role: e for e in elements if e.role in expected}
+    assert set(actual) == set(expected)
+    for role, value in expected.items():
+        element = actual[role]
+        assert element.text == value
+        assert read.text[element.block.start+element.text_start:element.block.start+element.text_end] == value
+    assert not [i for i in findings if i.rule_id.endswith(("_NUMBER", "_DATE")) or i.rule_id == "ELEMENT_SIZE_CHAIN"]
+
+
+@pytest.mark.parametrize("profile", ["HC-ND30", "DANG-HD05"])
+@pytest.mark.parametrize("wrong_role", ["number", "date"])
+def test_combined_header_reports_wrong_font_on_only_the_affected_element(profile, wrong_role):
+    document, expected = combined_header(profile, wrong_role=wrong_role)
+    read = read_docx(saved(document))
+    findings, _ = check_elements(read, profile)
+    italic = [i for i in findings if i.rule_id in {"ELEMENT_ITALIC_NUMBER", "ELEMENT_ITALIC_DATE"}]
+    assert [(i.rule_id, i.text) for i in italic] == [("ELEMENT_ITALIC_"+wrong_role.upper(), expected[wrong_role])]
+    assert read.text[italic[0].start:italic[0].end] == expected[wrong_role]
+
+
+@pytest.mark.parametrize("date_size,chain_error", [(13, False), (14, True)])
+def test_combined_header_date_part_still_checks_size_chain(date_size, chain_error):
+    document, _ = combined_header("HC-ND30", date_size=date_size)
+    findings, _ = check_elements(read_docx(saved(document)))
+    assert any(i.rule_id == "ELEMENT_SIZE_CHAIN" for i in findings) is chain_error
+
+
+def test_tab_inside_date_does_not_hide_wrong_locality_font():
+    document = header_document()
+    paragraph = document.tables[0].cell(0, 1).paragraphs[-1]
+    paragraph.clear()
+    paragraph.add_run("Ninh Bình,").italic = False
+    paragraph.add_run("\tngày 02 tháng 10 năm 2026").italic = True
+    findings, elements = check_elements(read_docx(saved(document)))
+    assert next(e.text for e in elements if e.role == "date") == paragraph.text
+    assert [i.text for i in findings if i.rule_id == "ELEMENT_ITALIC_DATE"] == [paragraph.text]
+
+
 def test_repeat_merging():
     result = merge_repeats([Issue(i*10, i*10+5, "mẫu", "Cùng lỗi", "X") for i in range(4)])
     assert len(result) == 1
