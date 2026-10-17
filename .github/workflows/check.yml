@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUTF8: '1'
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -33,7 +36,7 @@ jobs:
       - run: python -m pip install --no-deps --no-build-isolation -e .
       - name: Run pytest with readable failure diagnostics
         run: python tools/ci_command.py --log pytest-output.txt -- -m pytest -q -p no:cacheprovider
-      - run: python tools/bootstrap_data.py
+      - run: python tools/ci_command.py --log bootstrap-output.txt -- tools/bootstrap_data.py
       - run: python tools/make_sample.py
       - run: python tools/smoke_gui.py data/sample.docx --report data/ci-gui-smoke.json
 
@@ -50,7 +53,7 @@ jobs:
       - run: python -m pip install --require-hashes -r requirements-dev.lock
       - run: python -m pip install --no-deps --no-build-isolation -e .
       - name: Restore the verified trained model
-        run: python tools/ci_model.py restore
+        run: python tools/ci_command.py --log model-restore-output.txt -- tools/ci_model.py restore
       - name: Build and verify Windows executables
         run: python tools/ci_command.py --log windows-build-output.txt -- tools/package_windows.py
       - uses: actions/upload-artifact@v4
