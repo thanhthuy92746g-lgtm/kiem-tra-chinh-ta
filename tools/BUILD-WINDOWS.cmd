@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set PYTHONUTF8=1
 cd /d "%~dp0.."
 echo VietSpell - build Windows x64 with the trained model
 py -3.11 -c "import sys; assert sys.maxsize > 2**32" >nul 2>&1

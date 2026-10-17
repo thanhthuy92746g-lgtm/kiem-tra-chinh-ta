@@ -32,21 +32,7 @@ jobs:
       - run: python -m pip install --require-hashes -r requirements-dev.lock
       - run: python -m pip install --no-deps --no-build-isolation -e .
       - name: Run pytest with readable failure diagnostics
-        shell: bash
-        run: |
-          set +e
-          python -m pytest -q -p no:cacheprovider > pytest-output.txt 2>&1
-          test_status=$?
-          cat pytest-output.txt
-          if [ "$test_status" -ne 0 ]; then
-            python - <<'PY'
-          from pathlib import Path
-          text = Path('pytest-output.txt').read_text(encoding='utf-8', errors='replace')[-14000:]
-          text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print('::error title=pytest diagnostics::' + text)
-          PY
-          fi
-          exit "$test_status"
+        run: python tools/ci_command.py --log pytest-output.txt -- -m pytest -q -p no:cacheprovider
       - run: python tools/bootstrap_data.py
       - run: python tools/make_sample.py
       - run: python tools/smoke_gui.py data/sample.docx --report data/ci-gui-smoke.json
@@ -66,7 +52,7 @@ jobs:
       - name: Restore the verified trained model
         run: python tools/ci_model.py restore
       - name: Build and verify Windows executables
-        run: python tools/package_windows.py
+        run: python tools/ci_command.py --log windows-build-output.txt -- tools/package_windows.py
       - uses: actions/upload-artifact@v4
         with:
           name: VietSpell-Windows-x64-trained
